@@ -1,3 +1,11 @@
 (fp_lib_table
   (lib (name dsn-mini-360)(type KiCad)(uri "$(KIPRJMOD)/dsn-mini-360.pretty")(options "")(descr ""))
+  (lib (name Capacitors_SMD)(type KiCad)(uri "$(KIPRJMOD)/libs/Capacitors_SMD.pretty")(options "")(descr ""))
+  (lib (name Connectors_Phoenix)(type KiCad)(uri "$(KIPRJMOD)/libs/Connectors_Phoenix.pretty")(options "")(descr ""))
+  (lib (name Housings_SOIC)(type KiCad)(uri "$(KIPRJMOD)/libs/Housings_SOIC.pretty")(options "")(descr ""))
+  (lib (name Housings_SSOP)(type KiCad)(uri "$(KIPRJMOD)/libs/Housings_SSOP.pretty")(options "")(descr ""))
+  (lib (name Mounting_Holes)(type KiCad)(uri "$(KIPRJMOD)/libs/Mounting_Holes.pretty")(options "")(descr ""))
+  (lib (name Resistors_SMD)(type KiCad)(uri "$(KIPRJMOD)/libs/Resistors_SMD.pretty")(options "")(descr ""))
+  (lib (name SMD_Packages)(type KiCad)(uri "$(KIPRJMOD)/libs/SMD_Packages.pretty")(options "")(descr ""))
+  (lib (name Wire_Pads)(type KiCad)(uri "$(KIPRJMOD)/libs/Wire_Pads.pretty")(options "")(descr ""))
 )
