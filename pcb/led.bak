@@ -44,14 +44,6 @@ F 3 "" H 1000 900 50  0001 C CNN
 $EndComp
 Text Notes 800  1950 0    60   ~ 0
 IN
-Text Notes 5500 1900 0    60   ~ 0
-+5V
-Text Notes 5500 2150 0    60   ~ 0
-DI
-Text Notes 5500 2400 0    60   ~ 0
-DO
-Text Notes 5500 2650 0    60   ~ 0
-GND
 $Comp
 L C C2
 U 1 1 58CEFF6D
@@ -113,7 +105,7 @@ U 1 1 58D6F9F8
 P 1250 1900
 F 0 "J1" H 1250 2150 50  0000 C CNN
 F 1 "CONN_01X04" V 1350 1900 50  0000 C CNN
-F 2 "Connectors_Phoenix:PhoenixContact_MSTBA-G_04x5.08mm_Angled" H 1250 1900 50  0001 C CNN
+F 2 "Connectors_Phoenix:PhoenixContact_MC-G_04x3.50mm_Angled" H 1250 1900 50  0001 C CNN
 F 3 "" H 1250 1900 50  0001 C CNN
 	1    1250 1900
 	-1   0    0    -1  
@@ -124,7 +116,7 @@ U 1 1 58D6FA1F
 P 1250 3000
 F 0 "J2" H 1250 3250 50  0000 C CNN
 F 1 "CONN_01X04" V 1350 3000 50  0000 C CNN
-F 2 "Connectors_Phoenix:PhoenixContact_MSTBA-G_04x5.08mm_Angled" H 1250 3000 50  0001 C CNN
+F 2 "Connectors_Phoenix:PhoenixContact_MC-G_04x3.50mm_Angled" H 1250 3000 50  0001 C CNN
 F 3 "" H 1250 3000 50  0001 C CNN
 	1    1250 3000
 	-1   0    0    -1  
@@ -201,7 +193,7 @@ Connection ~ 1300 4800
 Wire Wire Line
 	1000 900  1000 1000
 Wire Wire Line
-	1100 4200 1100 4450
+	1100 4050 1100 4450
 $Comp
 L MAX485 U3
 U 1 1 58D70242
@@ -337,7 +329,7 @@ F 3 "" H 2150 2200 50  0001 C CNN
 	1    0    0    -1  
 $EndComp
 Wire Wire Line
-	1800 1550 1800 2850
+	1800 1550 1800 4050
 Wire Wire Line
 	1800 2850 1450 2850
 Connection ~ 1800 1750
@@ -425,45 +417,45 @@ $EndComp
 Wire Wire Line
 	2000 900  2000 1000
 $Comp
-L CONN_01X01 J3
+L CONN_01X01 +5
 U 1 1 58D711FD
 P 5250 1850
-F 0 "J3" H 5250 1950 50  0000 C CNN
+F 0 "+5" H 5500 1850 50  0000 C CNN
 F 1 "CONN_01X01" V 5350 1850 50  0001 C CNN
-F 2 "Wire_Pads:SolderWirePad_single_1-5mmDrill" H 5250 1850 50  0001 C CNN
+F 2 "Wire_Pads:SolderWirePad_single_1-2mmDrill" H 5250 1850 50  0001 C CNN
 F 3 "" H 5250 1850 50  0001 C CNN
 	1    5250 1850
 	1    0    0    -1  
 $EndComp
 $Comp
-L CONN_01X01 J4
+L CONN_01X01 DI
 U 1 1 58D7127E
 P 5250 2100
-F 0 "J4" H 5250 2200 50  0000 C CNN
+F 0 "DI" H 5500 2100 50  0000 C CNN
 F 1 "CONN_01X01" V 5350 2100 50  0001 C CNN
-F 2 "Wire_Pads:SolderWirePad_single_1-5mmDrill" H 5250 2100 50  0001 C CNN
+F 2 "Wire_Pads:SolderWirePad_single_1-2mmDrill" H 5250 2100 50  0001 C CNN
 F 3 "" H 5250 2100 50  0001 C CNN
 	1    5250 2100
 	1    0    0    -1  
 $EndComp
 $Comp
-L CONN_01X01 J5
+L CONN_01X01 DO
 U 1 1 58D712B3
 P 5250 2350
-F 0 "J5" H 5250 2450 50  0000 C CNN
+F 0 "DO" H 5500 2350 50  0000 C CNN
 F 1 "CONN_01X01" V 5350 2350 50  0001 C CNN
-F 2 "Wire_Pads:SolderWirePad_single_1-5mmDrill" H 5250 2350 50  0001 C CNN
+F 2 "Wire_Pads:SolderWirePad_single_1-2mmDrill" H 5250 2350 50  0001 C CNN
 F 3 "" H 5250 2350 50  0001 C CNN
 	1    5250 2350
 	1    0    0    -1  
 $EndComp
 $Comp
-L CONN_01X01 J6
+L CONN_01X01 GND
 U 1 1 58D712EA
 P 5250 2600
-F 0 "J6" H 5250 2700 50  0000 C CNN
+F 0 "GND" H 5500 2600 50  0000 C CNN
 F 1 "CONN_01X01" V 5350 2600 50  0001 C CNN
-F 2 "Wire_Pads:SolderWirePad_single_1-5mmDrill" H 5250 2600 50  0001 C CNN
+F 2 "Wire_Pads:SolderWirePad_single_1-2mmDrill" H 5250 2600 50  0001 C CNN
 F 3 "" H 5250 2600 50  0001 C CNN
 	1    5250 2600
 	1    0    0    -1  
@@ -513,17 +505,6 @@ Wire Wire Line
 	1550 2050 1550 2200
 Wire Wire Line
 	1450 1750 1800 1750
-$Comp
-L +12V #PWR020
-U 1 1 58E11721
-P 1100 4200
-F 0 "#PWR020" H 1100 4050 50  0001 C CNN
-F 1 "+12V" H 1100 4340 50  0000 C CNN
-F 2 "" H 1100 4200 50  0001 C CNN
-F 3 "" H 1100 4200 50  0001 C CNN
-	1    1100 4200
-	1    0    0    -1  
-$EndComp
 Wire Wire Line
 	1100 4400 1300 4400
 $Comp
@@ -551,4 +532,7 @@ F 3 "" H 1700 4500 50  0001 C CNN
 	1    1700 4500
 	1    0    0    -1  
 $EndComp
+Wire Wire Line
+	1800 4050 1100 4050
+Connection ~ 1800 2850
 $EndSCHEMATC
