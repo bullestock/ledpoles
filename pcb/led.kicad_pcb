@@ -37,7 +37,7 @@
   )
 
   (setup
-    (last_trace_width 0.5)
+    (last_trace_width 0.25)
     (user_trace_width 0.5)
     (user_trace_width 1)
     (trace_clearance 0.2)
@@ -544,7 +544,7 @@
   (gr_text DI (at 126.492 104.902) (layer F.SilkS)
     (effects (font (size 1.5 1) (thickness 0.2)))
   )
-  (gr_text +5V (at 137.668 108.585) (layer F.SilkS)
+  (gr_text +12V (at 137.668 108.585) (layer F.SilkS)
     (effects (font (size 1.5 1) (thickness 0.2)))
   )
   (gr_text GND (at 134.112 109.347 90) (layer F.SilkS)
