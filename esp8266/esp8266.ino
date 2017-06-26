@@ -134,25 +134,6 @@ WiFiClient client;
 
 bool dirtyshow = false;
 
-void blit_cmd(uint8_t* data, int size)
-{
-    if (size < sizeof(int16_t))
-        return;
-    auto cmdptr = (int16_t*) data;
-    size -= sizeof(int16_t);
-    auto pixrgb = data + sizeof(int16_t);
-    auto nof_leds = size/3;
-    int offset = *cmdptr;
-    //Serial.printf("Offset: %i, Size: %i\n", offset, size / 3);
-    for (int i = offset; i < std::min(offset + nof_leds, NUM_LEDS); ++i)
-        leds[i] = CRGB(*pixrgb++, *pixrgb++, *pixrgb++);
-    dirtyshow = true;
-}
-
-
-
-const unsigned long MODE_DURATION = 10000; // ms
-
 enum AutonomousMode
 {
     OFF,
@@ -220,8 +201,44 @@ const char* mode_names[] =
     "Rainbow loop"
 };
 
-
 AutonomousMode autonomous_mode = AutonomousMode::FIRST;
+bool auto_mode_switch = true;
+
+void parse_pixel_data(uint8_t* data, int size)
+{
+    if (size < sizeof(int16_t))
+        return;
+    if (autonomous_mode != AutonomousMode::OFF)
+    {
+        autonomous_mode = AutonomousMode::OFF;
+        Serial.println("Switch to non-autonomous mode");
+        delay(10);
+    }
+    
+    auto cmdptr = (int16_t*) data;
+    size -= sizeof(int16_t);
+    auto pixrgb = data + sizeof(int16_t);
+    auto nof_leds = size/3;
+    int offset = *cmdptr;
+    //Serial.printf("Offset: %i, Size: %i\n", offset, size / 3);
+    for (int i = offset; i < std::min(offset + nof_leds, NUM_LEDS); ++i)
+        leds[i] = CRGB(*pixrgb++, *pixrgb++, *pixrgb++);
+    dirtyshow = true;
+}
+
+void parse_mode(uint8_t* data, int size)
+{
+    if (size < sizeof(uint8_t))
+        return;
+    auto cmdptr = (uint8_t*) data;
+    auto_mode_switch = false;
+    autonomous_mode = static_cast<AutonomousMode>(*cmdptr);
+    Serial.printf("Set mode %d\n", autonomous_mode);
+}
+
+
+const unsigned long MODE_DURATION = 60000; // ms
+
 AutonomousMode old_mode = autonomous_mode;
 
 void clientEventUdp()
@@ -229,18 +246,25 @@ void clientEventUdp()
     int32_t packetSize = 0;
     while ((packetSize = Udp.parsePacket()))
     {
-        if (autonomous_mode != AutonomousMode::OFF)
-        {
-            Serial.println("Switch to non-autonomous mode");
-            autonomous_mode = AutonomousMode::OFF;
-        }
-    
         uint8_t rcv[10 + NUM_LEDS * 3];
         auto len = Udp.read(rcv, sizeof(rcv));
         auto cmdptr = (uint16_t*) rcv;
         auto cmd = cmdptr[0];
-        if (cmd == 1111)
-            blit_cmd(rcv + sizeof(int16_t), len - sizeof(int16_t)); 
+        switch (cmd)
+        {
+        case 1111:
+            // Pixel data
+            parse_pixel_data(rcv + sizeof(int16_t), len - sizeof(int16_t));
+            break;
+
+        case 1112:
+            // Set autonomous mode (1 byte)
+            parse_mode(rcv + sizeof(int16_t), len - sizeof(int16_t));
+
+        default:
+            break;
+        }
+            
     }
 }
 
@@ -307,7 +331,7 @@ void runAutonomous()
     if (autonomous_mode == AutonomousMode::OFF)
         return;
     const auto now = millis();
-    if (now - auto_last_mode_switch > MODE_DURATION)
+    if (auto_mode_switch && (now - auto_last_mode_switch > MODE_DURATION))
     {
         all_white();
         auto_last_mode_switch = now;
