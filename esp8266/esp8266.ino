@@ -42,7 +42,6 @@ MDNSResponder mdns;
 const char myDNSName[] = "displaydingo1";
 
 WiFiUDP Udp;
-#define OSCDEBUG    (0)
 
 const int NUM_LEDS_PER_POLE = 30;
 const int NUM_LEDS = NUM_LEDS_PER_POLE*2; //!!
@@ -70,11 +69,6 @@ void setup()
 
   Serial.begin(115200);
   Serial.println("Sommerhack LED");
-
-  // // this resets all the neopixels to an off state
-  // strip.setBrightness(255);
-  // strip.begin();
-  // strip.show();
 
   // Connect to WiFi network
   int index = 0;
@@ -118,7 +112,7 @@ void setup()
 
   // Set up mDNS responder:
   if (!mdns.begin(myDNSName, WiFi.localIP()))
-      Serial.println("Error setting up MDNS responder!");
+      Serial.println("Error setting up mDNS responder!");
   else
   {
       Serial.println("mDNS responder started");
@@ -147,15 +141,15 @@ void blit_cmd(uint8_t* data, int size)
     auto cmdptr = (int16_t*) data;
     size -= sizeof(int16_t);
     auto pixrgb = data + sizeof(int16_t);
+    auto nof_leds = size/3;
     int offset = *cmdptr;
     //Serial.printf("Offset: %i, Size: %i\n", offset, size / 3);
-    //!! for (int i = offset; i < std::min(size / 3 + offset, NUM_LEDS); i++)
-    //     strip.setPixelColor(i, GammaLUT[*pixrgb++], GammaLUT[*pixrgb++], GammaLUT[*pixrgb++]);
+    for (int i = offset; i < std::min(offset + nof_leds, NUM_LEDS); ++i)
+        leds[i] = CRGB(*pixrgb++, *pixrgb++, *pixrgb++);
     dirtyshow = true;
 }
 
 
-uint8_t rcv[10 + 300 * 3];
 
 const unsigned long MODE_DURATION = 10000; // ms
 
@@ -195,6 +189,7 @@ void clientEventUdp()
             autonomous_mode = AutonomousMode::OFF;
         }
     
+        uint8_t rcv[10 + NUM_LEDS * 3];
         auto len = Udp.read(rcv, sizeof(rcv));
         auto cmdptr = (uint16_t*) rcv;
         auto cmd = cmdptr[0];
@@ -527,11 +522,11 @@ void loop()
 
     runAutonomous();
     
-    //!! if (dirtyshow && strip.canShow())
-    // {
-    //     strip.show();
-    //     dirtyshow = false;
-    // }
+    if (dirtyshow)
+    {
+        FastLED.show();
+        dirtyshow = false;
+    }
 }
 
 void FillLEDsFromPaletteColors(uint8_t colorIndex)
