@@ -44,7 +44,8 @@ const char myDNSName[] = "displaydingo1";
 WiFiUDP Udp;
 
 const int NUM_LEDS_PER_POLE = 30;
-const int NUM_LEDS = NUM_LEDS_PER_POLE*2; //!!
+const int NUM_POLES = 10; // ?
+const int NUM_LEDS = NUM_LEDS_PER_POLE*NUM_POLES;
 const int UPDATES_PER_SECOND = 100;
 const int PixelPin = D8;
 const int BRIGHTNESS = 100; // percent
@@ -333,7 +334,13 @@ void runAutonomous()
     const auto now = millis();
     if (auto_mode_switch && (now - auto_last_mode_switch > MODE_DURATION))
     {
-        all_white();
+        for (int j = 0; j < 10; ++j)
+        {
+            for (int i = 0; i < NUM_LEDS; i++)
+                leds[i].nscale8(200);
+            show();
+            delay(100);
+        }
         auto_last_mode_switch = now;
         autonomous_mode = static_cast<AutonomousMode>(static_cast<int>(autonomous_mode)+1);
         if (autonomous_mode >= AutonomousMode::LAST)
@@ -342,8 +349,6 @@ void runAutonomous()
         Serial.print(autonomous_mode);
         Serial.print(": ");
         Serial.println(mode_names[autonomous_mode]);
-        delay(100);
-        all_black();
     }
     delay(1);
 
