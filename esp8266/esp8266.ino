@@ -25,12 +25,12 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#include <Adafruit_NeoPixel.h>
 #include <FastLED.h>
 
 #include <ESP8266WiFi.h>
 #include <ESP8266mDNS.h>
-#include <Adafruit_NeoPixel.h>
+
+const char* version = "0.0.5";
 
 const char* ssids[] = {
     "bullestock-guest",
@@ -63,79 +63,133 @@ unsigned long hue_millis = 0;
 extern CRGBPalette16 myRedWhiteBluePalette;
 extern const TProgmemPalette16 myRedWhiteBluePalette_p PROGMEM;
 
+enum class StripMode
+{
+    // Use the whole strip for the animation
+    WholeStrip,
+    First = WholeStrip,
+    // Use one pole for the animation, and copy to remaining poles
+    OnePoleCopy,
+    // Use one pole for the animation, and shift-copy to remaining poles
+    OnePoleShiftCopy,
+    Last
+};
+
+StripMode strip_mode = StripMode::WholeStrip;
+
+int effective_leds = NUM_LEDS;
+
+void set_strip_mode(StripMode mode)
+{
+    switch (mode)
+    {
+    case StripMode::WholeStrip:
+        effective_leds = NUM_LEDS;
+        break;
+
+    case StripMode::OnePoleCopy:
+    case StripMode::OnePoleShiftCopy:
+        effective_leds = NUM_LEDS_PER_POLE;
+        break;
+
+    default:
+        return;
+    }
+    strip_mode = mode;
+}
+
+void clear_all();
+void all_white();
+void all_black();
+void show();
+void random_burst();
+void flicker();
+void pulse_one_color_all();
+void pulse_one_color_all_rev();
+void radiation();
+void color_loop_vardelay();
+void sin_bright_wave();
+void random_color_pop();
+void ems_lightsSTROBE();
+void rgb_propeller();
+void kitt();
+void matrix();
+
 void setup()
 {
-  FastLED.addLeds<WS2811, PixelPin, GRB>(leds, NUM_LEDS).setCorrection(TypicalLEDStrip);
-  FastLED.setBrightness(BRIGHTNESS);
+    FastLED.addLeds<WS2811, PixelPin, GRB>(leds, NUM_LEDS).setCorrection(TypicalLEDStrip);
+    FastLED.setBrightness(BRIGHTNESS);
 
-  Serial.begin(115200);
-  Serial.println("Sommerhack LED");
+    delay(1000);
+    Serial.begin(115200);
+    Serial.print("\nSommerhack LED ");
+    Serial.println(version);
 
-  // Connect to WiFi network
-  int index = 0;
-  while (1)
-  {
-      Serial.println();
-      Serial.println();
-      Serial.print("Trying to connect to ");
-      Serial.println(ssids[index]);
+    // Connect to WiFi network
+    int index = 0;
+    while (1)
+    {
+        Serial.println();
+        Serial.println();
+        Serial.print("Trying to connect to ");
+        Serial.println(ssids[index]);
 
-      WiFi.begin(ssids[index], password);
+        WiFi.begin(ssids[index], password);
 
-      int i = 0;
-      bool connected = false;
-      while (i < 15)
-      {
-          if (WiFi.status() == WL_CONNECTED)
-          {
-              connected = true;
-              break;
-          }
-          delay(500);
-          Serial.print(".");
-          ++i;
-      }
-      if (connected)
-      {
-          Serial.println("");
-          Serial.print("Connected to ");
-          Serial.println(ssids[index]);
-          break;
-      }
-      Serial.println("");
-      ++index;
-      if (index >= sizeof(ssids)/sizeof(const char*))
-          index = 0;
-  }
+        int i = 0;
+        bool connected = false;
+        while (i < 15)
+        {
+            if (WiFi.status() == WL_CONNECTED)
+            {
+                connected = true;
+                break;
+            }
+            delay(500);
+            Serial.print(".");
+            ++i;
+        }
+        if (connected)
+        {
+            Serial.println("");
+            Serial.print("Connected to ");
+            Serial.println(ssids[index]);
+            break;
+        }
+        Serial.println("");
+        ++index;
+        if (index >= sizeof(ssids)/sizeof(const char*))
+            index = 0;
+    }
   
-  // Print the IP address
-  Serial.println(WiFi.localIP());
+    // Print the IP address
+    Serial.println(WiFi.localIP());
 
-  // Set up mDNS responder:
-  if (!mdns.begin(myDNSName, WiFi.localIP()))
-      Serial.println("Error setting up mDNS responder!");
-  else
-  {
-      Serial.println("mDNS responder started");
-      Serial.printf("My name is [%s]\r\n", myDNSName);
-  }
+    // Set up mDNS responder:
+    if (!mdns.begin(myDNSName, WiFi.localIP()))
+        Serial.println("Error setting up mDNS responder!");
+    else
+    {
+        Serial.println("mDNS responder started");
+        Serial.printf("My name is [%s]\r\n", myDNSName);
+    }
 
-  Udp.begin(7890);
-  all_white();
-  Serial.println("Set to all white");
-  delay(1000);
-  clear_all();
+    Udp.begin(7890);
+    all_white();
+    Serial.println("Set to all white");
+    delay(1000);
+    clear_all();
 
-  const auto now = millis();
-  auto_last_mode_switch = now;
-  hue_millis = now;
+    const auto now = millis();
+    auto_last_mode_switch = now;
+    hue_millis = now;
 }
 
 WiFiClient client;
 
 bool dirtyshow = false;
 
-enum AutonomousMode
+enum class AutonomousMode
 {
     OFF,
     CYCLE,
@@ -158,12 +212,12 @@ enum AutonomousMode
     FLICKER,
     PULSE,
     PULSE_REV,
-    RADIATION,
+    RADIATION,      // 20
     COLOR_LOOP,
     SIN_BRIGHT,
     RANDOM_POP,
     STROBE,
-    PROPELLER,
+    PROPELLER,      // 25
     KITT,
     MATRIX,
     LAST
@@ -232,8 +286,19 @@ void parse_mode(uint8_t* data, int size)
     if (size < sizeof(uint8_t))
         return;
     auto cmdptr = (uint8_t*) data;
+    if (*cmdptr >= static_cast<uint8_t>(AutonomousMode::LAST))
+        return;
     auto_mode_switch = false;
     autonomous_mode = static_cast<AutonomousMode>(*cmdptr);
+    Serial.printf("Set mode %d\n", autonomous_mode);
+}
+
+void parse_strip_mode(uint8_t* data, int size)
+{
+    if (size < sizeof(uint8_t))
+        return;
+    auto cmdptr = (uint8_t*) data;
+    set_strip_mode(static_cast<StripMode>(*cmdptr));
     Serial.printf("Set mode %d\n", autonomous_mode);
 }
 
@@ -261,7 +326,13 @@ void clientEventUdp()
         case 1112:
             // Set autonomous mode (1 byte)
             parse_mode(rcv + sizeof(int16_t), len - sizeof(int16_t));
-
+            break;
+            
+        case 1113:
+            // Set autonomous strip mode (1 byte)
+            parse_strip_mode(rcv + sizeof(int16_t), len - sizeof(int16_t));
+            break;
+            
         default:
             break;
         }
@@ -300,6 +371,24 @@ void all_black()
 
 void show()
 {
+    switch (strip_mode)
+    {
+    case StripMode::WholeStrip:
+        break;
+
+    case StripMode::OnePoleCopy:
+        for (int i = 0; i < NUM_LEDS_PER_POLE; ++i)
+            for (int j = 1; j < NUM_POLES; ++j)
+                leds[j*NUM_LEDS_PER_POLE+i] = leds[i];
+        break;
+
+    case StripMode::OnePoleShiftCopy:
+        for (int i = 0; i < NUM_LEDS_PER_POLE; ++i)
+            for (int j = 1; j < NUM_POLES; ++j)
+                leds[j*NUM_LEDS_PER_POLE+(i+j*3)%NUM_LEDS_PER_POLE] = leds[i];
+        break;
+    }
+    
     FastLED.show();
 }
 
@@ -344,11 +433,16 @@ void runAutonomous()
         auto_last_mode_switch = now;
         autonomous_mode = static_cast<AutonomousMode>(static_cast<int>(autonomous_mode)+1);
         if (autonomous_mode >= AutonomousMode::LAST)
+        {
             autonomous_mode = AutonomousMode::FIRST;
+            strip_mode = static_cast<StripMode>(static_cast<int>(strip_mode)+1);
+            if (strip_mode >= StripMode::Last)
+                strip_mode = StripMode::First;
+        }
         Serial.print("Autonomous mode ");
-        Serial.print(autonomous_mode);
+        Serial.print(static_cast<int>(autonomous_mode));
         Serial.print(": ");
-        Serial.println(mode_names[autonomous_mode]);
+        Serial.println(mode_names[static_cast<int>(autonomous_mode)]);
     }
     delay(1);
 
@@ -358,7 +452,7 @@ void runAutonomous()
         // one at a time
         if (current_loop >= 3)
             current_loop = 0;
-        if (current_led >= NUM_LEDS)
+        if (current_led >= effective_leds)
         {
             current_led = 0;
             ++current_loop;
@@ -375,7 +469,7 @@ void runAutonomous()
 
     case AutonomousMode::GROWING_BARS:
         // growing/receeding bars
-        if (current_led >= NUM_LEDS)
+        if (current_led >= effective_leds)
         {
             current_led = 0;
             ++current_loop;
@@ -405,9 +499,9 @@ void runAutonomous()
             }
             switch (current_loop)
             { 
-            case 0: leds[NUM_LEDS-1-current_led].r = 0; break;
-            case 1: leds[NUM_LEDS-1-current_led].g = 0; break;
-            case 2: leds[NUM_LEDS-1-current_led].b = 0; break;
+            case 0: leds[effective_leds-1-current_led].r = 0; break;
+            case 1: leds[effective_leds-1-current_led].g = 0; break;
+            case 2: leds[effective_leds-1-current_led].b = 0; break;
             }
         }
         ++current_led;
@@ -417,10 +511,10 @@ void runAutonomous()
         // Fade in/fade out
         for (int j = 0; j < 3; j++ )
         { 
-            memset(leds, 0, NUM_LEDS * 3);
+            memset(leds, 0, effective_leds * 3);
             for (int k = 0; k < 256; k++)
             {
-                for (int i = 0; i < NUM_LEDS; i++ )
+                for (int i = 0; i < effective_leds; i++ )
                     switch(j)
                     {
                     case 0: leds[i].r = k; break;
@@ -433,7 +527,7 @@ void runAutonomous()
             }
             for (int k = 255; k >= 0; k--)
             { 
-                for (int i = 0; i < NUM_LEDS; i++ )
+                for (int i = 0; i < effective_leds; i++ )
                     switch(j) { 
                     case 0: leds[i].r = k; break;
                     case 1: leds[i].g = k; break;
@@ -447,10 +541,10 @@ void runAutonomous()
         break;
 
     case AutonomousMode::CHASE:
-        memset(leds, 0, NUM_LEDS * 3);
+        memset(leds, 0, effective_leds * 3);
         for (size_t c = 0; c < sizeof(chase_colours)/sizeof(chase_colours[0]); ++c)
         {
-            for (int i = 0; i < NUM_LEDS; ++i)
+            for (int i = 0; i < effective_leds; ++i)
             {
                 if (i)
                     leds[i-1] = CRGB::Black;
@@ -459,16 +553,16 @@ void runAutonomous()
                 delay(50);
                 CHECK_MODE();
             }
-            leds[NUM_LEDS-1] = CRGB::Black;
+            leds[effective_leds-1] = CRGB::Black;
         }
         break;
 
     case AutonomousMode::BOUNCE:
         for (size_t c = 0; c < sizeof(chase_colours)/sizeof(chase_colours[0]); ++c)
         {
-            memset(leds, 0, NUM_LEDS * 3);
+            memset(leds, 0, effective_leds * 3);
             show();
-            for (int i = 0; i < NUM_LEDS; ++i)
+            for (int i = 0; i < effective_leds; ++i)
             {
                 if (i)
                     leds[i-1] = CRGB::Black;
@@ -477,38 +571,38 @@ void runAutonomous()
                 delay(50);
                 CHECK_MODE();
             }
-            leds[NUM_LEDS-1] = CRGB::Black;
+            leds[effective_leds-1] = CRGB::Black;
             show();
             delay(50);
-            for (int i = 0; i < NUM_LEDS; ++i)
+            for (int i = 0; i < effective_leds; ++i)
             {
                 if (i)
-                    leds[NUM_LEDS-i] = CRGB::Black;
-                leds[NUM_LEDS-1-i] = chase_colours[c];
+                    leds[effective_leds-i] = CRGB::Black;
+                leds[effective_leds-1-i] = chase_colours[c];
                 show();
                 delay(50);
                 CHECK_MODE();
             }
-            leds[NUM_LEDS-1] = CRGB::Black;
+            leds[effective_leds-1] = CRGB::Black;
         }
         break;
     
     case AutonomousMode::CHASE_MULTI:
-        memset(leds, 0, NUM_LEDS * 3);
+        memset(leds, 0, effective_leds * 3);
         for (size_t c = 0; c < sizeof(chase_colours)/sizeof(chase_colours[0]); ++c)
         {
             const int N = 4;
             for (int j = 0; j < N; ++j)
             {
-                memset(leds, 0, NUM_LEDS * 3);
-                for (int i = 0; i < NUM_LEDS; ++i)
+                memset(leds, 0, effective_leds * 3);
+                for (int i = 0; i < effective_leds; ++i)
                     if (((i+j) % N) == 0)
                         leds[i] = chase_colours[c];
                 show();
                 delay(100);
                 CHECK_MODE();
             }
-            leds[NUM_LEDS-1] = CRGB::Black;
+            leds[effective_leds-1] = CRGB::Black;
         }
         break;
 
@@ -521,16 +615,16 @@ void runAutonomous()
         break;
 
     case AutonomousMode::RAINBOW:
-        fill_rainbow(leds, NUM_LEDS, --starthue, 20);
+        fill_rainbow(leds, effective_leds, --starthue, 20);
         break;
 
     case AutonomousMode::RAINBOW_GLITTER:
-        fill_rainbow(leds, NUM_LEDS, --starthue, 20);
+        fill_rainbow(leds, effective_leds, --starthue, 20);
         addGlitter(80);
         break;
 
     case AutonomousMode::CYLON:
-        if (current_led >= NUM_LEDS)
+        if (current_led >= effective_leds)
             current_led = 0;
         // Set the i'th led to red 
         leds[current_led] = CHSV(starthue++, 255, 255);
@@ -543,19 +637,19 @@ void runAutonomous()
         break;
 
     case AutonomousMode::CONFETTI:
-        fadeToBlackBy(leds, NUM_LEDS, 10);
-        leds[random16(NUM_LEDS)] += CHSV(starthue + random8(64), 200, 255);
+        fadeToBlackBy(leds, effective_leds, 10);
+        leds[random16(effective_leds)] += CHSV(starthue + random8(64), 200, 255);
         break;
     
     case AutonomousMode::SINELON:
-        fadeToBlackBy(leds, NUM_LEDS, 20);
-        leds[beatsin16(13, 0, NUM_LEDS)] += CHSV(starthue, 255, 192);
+        fadeToBlackBy(leds, effective_leds, 20);
+        leds[beatsin16(13, 0, effective_leds)] += CHSV(starthue, 255, 192);
         break;
 
     case AutonomousMode::BPM:
         {
             const uint8_t beat = beatsin8(BeatsPerMinute, 64, 255);
-            for (int i = 0; i < NUM_LEDS; i++)
+            for (int i = 0; i < effective_leds; i++)
                 leds[i] = ColorFromPalette(PartyColors_p, starthue+(i*2), beat-starthue+(i*10));
         }
         break;
@@ -563,11 +657,11 @@ void runAutonomous()
     case AutonomousMode::JUGGLE:
         // eight colored dots, weaving in and out of sync with each other
         {
-            fadeToBlackBy(leds, NUM_LEDS, 20);
+            fadeToBlackBy(leds, effective_leds, 20);
             byte dothue = 0;
             for (int i = 0; i < 8; i++)
             {
-                leds[beatsin16(i+7,0,NUM_LEDS)] |= CHSV(dothue, 200, 255);
+                leds[beatsin16(i+7,0,effective_leds)] |= CHSV(dothue, 200, 255);
                 dothue += 32;
             }
         }
@@ -629,7 +723,7 @@ void runAutonomous()
         clear_all();
         break;
     }
-    
+
     show();
     delay(1000 / UPDATES_PER_SECOND);
 
@@ -658,7 +752,7 @@ void FillLEDsFromPaletteColors(uint8_t colorIndex)
 {
   uint8_t brightness = 255;
     
-  for(int i = 0; i < NUM_LEDS; i++) {
+  for(int i = 0; i < effective_leds; i++) {
     leds[i] = ColorFromPalette(currentPalette, colorIndex, brightness, currentBlending);
     colorIndex += 3;
   }
@@ -768,7 +862,7 @@ const TProgmemPalette16 myRedWhiteBluePalette_p PROGMEM =
 //
 // Temperature is in arbitrary units from 0 (cold black) to 255 (white hot).
 //
-// This simulation scales it self a bit depending on NUM_LEDS; it should look
+// This simulation scales it self a bit depending on effective_leds; it should look
 // "OK" on anywhere from 20 to 100 LEDs without too much tweaking. 
 //
 // I recommend running this simulation at anywhere from 30-100 frames per second,
@@ -795,43 +889,43 @@ bool gReverseDirection = false;
 
 void Fire2012()
 {
-  // Array of temperature readings at each simulation cell
-  static byte heat[NUM_LEDS];
+    // Array of temperature readings at each simulation cell
+    static byte heat[NUM_LEDS];
 
-  // Step 1.  Cool down every cell a little
-  for( int i = 0; i < NUM_LEDS; i++) {
-    heat[i] = qsub8( heat[i],  random8(0, ((COOLING * 10) / NUM_LEDS) + 2));
-  }
-  
-  // Step 2.  Heat from each cell drifts 'up' and diffuses a little
-  for( int k= NUM_LEDS - 1; k >= 2; k--) {
-    heat[k] = (heat[k - 1] + heat[k - 2] + heat[k - 2] ) / 3;
-  }
-    
-  // Step 3.  Randomly ignite new 'sparks' of heat near the bottom
-  if( random8() < SPARKING ) {
-    int y = random8(7);
-    heat[y] = qadd8( heat[y], random8(160,255) );
-  }
-
-  // Step 4.  Map from heat cells to LED colors
-  for( int j = 0; j < NUM_LEDS; j++) {
-    CRGB color = HeatColor( heat[j]);
-    int pixelnumber;
-    if( gReverseDirection ) {
-      pixelnumber = (NUM_LEDS-1) - j;
-    } else {
-      pixelnumber = j;
+    // Step 1.  Cool down every cell a little
+    for( int i = 0; i < effective_leds; i++) {
+        heat[i] = qsub8( heat[i],  random8(0, ((COOLING * 10) / effective_leds) + 2));
     }
-    leds[pixelnumber] = color;
-  }
+  
+    // Step 2.  Heat from each cell drifts 'up' and diffuses a little
+    for( int k= effective_leds - 1; k >= 2; k--) {
+        heat[k] = (heat[k - 1] + heat[k - 2] + heat[k - 2] ) / 3;
+    }
+    
+    // Step 3.  Randomly ignite new 'sparks' of heat near the bottom
+    if( random8() < SPARKING ) {
+        int y = random8(7);
+        heat[y] = qadd8( heat[y], random8(160,255) );
+    }
+
+    // Step 4.  Map from heat cells to LED colors
+    for( int j = 0; j < effective_leds; j++) {
+        CRGB color = HeatColor( heat[j]);
+        int pixelnumber;
+        if( gReverseDirection ) {
+            pixelnumber = (effective_leds-1) - j;
+        } else {
+            pixelnumber = j;
+        }
+        leds[pixelnumber] = color;
+    }
 }
 
 //----------
 
 int BOTTOM_INDEX = 0;
-int TOP_INDEX = int(NUM_LEDS/2);
-int EVENODD = NUM_LEDS%2;
+int TOP_INDEX = int(effective_leds/2);
+int EVENODD = effective_leds%2;
 int ledsX[NUM_LEDS][3];     //-ARRAY FOR COPYING WHATS IN THE LED STRIP CURRENTLY (FOR CELL-AUTOMATA, MARCH, ETC)
 
 int thisstep = 10;           //-FX LOOPS DELAY VAR
@@ -844,7 +938,7 @@ int thisGRN = 0;
 int thisBLU = 0;
 
 //---LED FX VARS
-int idex = 0;                //-LED INDEX (0 to NUM_LEDS-1
+int idex = 0;                //-LED INDEX (0 to effective_leds-1
 int ihue = 0;                //-HUE (0-255)
 int ibright = 0;             //-BRIGHTNESS (0-255)
 int isat = 0;                //-SATURATION (0-255)
@@ -853,7 +947,7 @@ float tcount = 0.0;          //-INC VAR FOR SIN LOOPS
 int lcount = 0;              //-ANOTHER COUNTING VAR
 
 void copy_led_array(){
-  for(int i = 0; i < NUM_LEDS; i++ ) {
+  for(int i = 0; i < effective_leds; i++ ) {
     ledsX[i][0] = leds[i].r;
     ledsX[i][1] = leds[i].g;
     ledsX[i][2] = leds[i].b;
@@ -861,19 +955,19 @@ void copy_led_array(){
 }
 
 void one_color_all(int cred, int cgrn, int cblu) {       //-SET ALL LEDS TO ONE COLOR
-    for(int i = 0 ; i < NUM_LEDS; i++ ) {
+    for(int i = 0 ; i < effective_leds; i++ ) {
       leds[i].setRGB( cred, cgrn, cblu);
     }
 }
 
 void one_color_allHSV(int ahue) {    //-SET ALL LEDS TO ONE COLOR (HSV)
-    for(int i = 0 ; i < NUM_LEDS; i++ ) {
+    for(int i = 0 ; i < effective_leds; i++ ) {
       leds[i] = CHSV(ahue, thissat, 255);
     }
 }
 
 void random_burst() {                         //-m4-RANDOM INDEX/COLOR
-  idex = random(0, NUM_LEDS);
+  idex = random(0, effective_leds);
   ihue = random(0, 255);  
   leds[idex] = CHSV(ihue, thissat, 255);
 }
@@ -883,7 +977,7 @@ void flicker() {                          //-m9-FLICKER EFFECT
   int random_delay = random(10,100);
   int random_bool = random(0,random_bright);
   if (random_bool < 10) {
-    for(int i = 0 ; i < NUM_LEDS; i++ ) {
+    for(int i = 0 ; i < effective_leds; i++ ) {
       leds[i] = CHSV(thishue, thissat, random_bright);
     }
   }
@@ -898,7 +992,7 @@ void pulse_one_color_all() {              //-m10-PULSE BRIGHTNESS ON ALL LEDS TO
     ibright = ibright - 1;
     if (ibright <= 1) {bouncedirection = 0;}         
   }  
-    for(int idex = 0 ; idex < NUM_LEDS; idex++ ) {
+    for(int idex = 0 ; idex < effective_leds; idex++ ) {
       leds[idex] = CHSV(thishue, thissat, ibright);
     }
 }
@@ -912,14 +1006,14 @@ void pulse_one_color_all_rev() {           //-m11-PULSE SATURATION ON ALL LEDS T
     isat = isat - 1;
     if (isat <= 1) {bouncedirection = 0;}         
   }  
-    for(int idex = 0 ; idex < NUM_LEDS; idex++ ) {
+    for(int idex = 0 ; idex < effective_leds; idex++ ) {
       leds[idex] = CHSV(thishue, isat, 255);
     }
 }
 
 void random_red() {                       //QUICK 'N DIRTY RANDOMIZE TO GET CELL AUTOMATA STARTED  
   int temprand;
-  for(int i = 0; i < NUM_LEDS; i++ ) {
+  for(int i = 0; i < effective_leds; i++ ) {
     temprand = random(0,100);
     if (temprand > 50) {leds[i].r = 255;}
     if (temprand <= 50) {leds[i].r = 0;}
@@ -928,16 +1022,16 @@ void random_red() {                       //QUICK 'N DIRTY RANDOMIZE TO GET CELL
 }
 
 void radiation() {                   //-m16-SORT OF RADIATION SYMBOLISH- 
-  int N3  = int(NUM_LEDS/3);
-  int N6  = int(NUM_LEDS/6);  
-  int N12 = int(NUM_LEDS/12);  
+  int N3  = int(effective_leds/3);
+  int N6  = int(effective_leds/6);  
+  int N12 = int(effective_leds/12);  
   for(int i = 0; i < N6; i++ ) {     //-HACKY, I KNOW...
     tcount = tcount + .02;
     if (tcount > 3.14) {tcount = 0.0;}
     ibright = int(sin(tcount)*255);    
-    int j0 = (i + NUM_LEDS - N12) % NUM_LEDS;
-    int j1 = (j0+N3) % NUM_LEDS;
-    int j2 = (j1+N3) % NUM_LEDS;    
+    int j0 = (i + effective_leds - N12) % effective_leds;
+    int j1 = (j0+N3) % effective_leds;
+    int j2 = (j1+N3) % effective_leds;    
     leds[j0] = CHSV(thishue, thissat, ibright);
     leds[j1] = CHSV(thishue, thissat, ibright);
     leds[j2] = CHSV(thishue, thissat, ibright);    
@@ -946,8 +1040,8 @@ void radiation() {                   //-m16-SORT OF RADIATION SYMBOLISH-
 
 void color_loop_vardelay() {                    //-m17-COLOR LOOP (SINGLE LED) w/ VARIABLE DELAY
   idex++;
-  if (idex > NUM_LEDS) {idex = 0;}
-  for(int i = 0; i < NUM_LEDS; i++ ) {
+  if (idex > effective_leds) {idex = 0;}
+  for(int i = 0; i < effective_leds; i++ ) {
     if (i == idex) {
       leds[i] = CHSV(0, thissat, 255);
     }
@@ -958,7 +1052,7 @@ void color_loop_vardelay() {                    //-m17-COLOR LOOP (SINGLE LED) w
 }
 
 void sin_bright_wave() {        //-m19-BRIGHTNESS SINE WAVE
-  for(int i = 0; i < NUM_LEDS; i++ ) {
+  for(int i = 0; i < effective_leds; i++ ) {
     tcount = tcount + .1;
     if (tcount > 3.14) {tcount = 0.0;}
     ibright = int(sin(tcount)*255);
@@ -967,7 +1061,7 @@ void sin_bright_wave() {        //-m19-BRIGHTNESS SINE WAVE
 }
 
 void random_color_pop() {                         //-m25-RANDOM COLOR POP
-  idex = random(0, NUM_LEDS);
+  idex = random(0, effective_leds);
   ihue = random(0, 255);
   one_color_all(0, 0, 0);
   leds[idex] = CHSV(ihue, thissat, 255);
@@ -986,7 +1080,7 @@ void ems_lightsSTROBE() {                  //-m26-EMERGENCY LIGHTS (STROBE LEFT/
     show(); delay(thisdelay);
   }
   for(int x = 0 ; x < 5; x++ ) {
-    for(int i = TOP_INDEX ; i < NUM_LEDS; i++ ) {
+    for(int i = TOP_INDEX ; i < effective_leds; i++ ) {
         leds[i] = CHSV(thathue, thissat, 255);
     }
     show(); delay(thisdelay);
@@ -999,13 +1093,13 @@ void rgb_propeller() {                           //-m27-RGB PROPELLER
   idex++;
   int ghue = (thishue + 80) % 255;
   int bhue = (thishue + 160) % 255;
-  int N3  = int(NUM_LEDS/3);
-  int N6  = int(NUM_LEDS/6);  
-  int N12 = int(NUM_LEDS/12);  
+  int N3  = int(effective_leds/3);
+  int N6  = int(effective_leds/6);  
+  int N12 = int(effective_leds/12);  
   for(int i = 0; i < N3; i++ ) {
-    int j0 = (idex + i + NUM_LEDS - N12) % NUM_LEDS;
-    int j1 = (j0+N3) % NUM_LEDS;
-    int j2 = (j1+N3) % NUM_LEDS;    
+    int j0 = (idex + i + effective_leds - N12) % effective_leds;
+    int j1 = (j0+N3) % effective_leds;
+    int j2 = (j1+N3) % effective_leds;    
     leds[j0] = CHSV(thishue, thissat, 255);
     leds[j1] = CHSV(ghue, thissat, 255);
     leds[j2] = CHSV(bhue, thissat, 255);    
@@ -1019,13 +1113,13 @@ void kitt()
   for(int i = 0; i < rand; i++ ) {
     leds[TOP_INDEX+i] = CHSV(thishue, thissat, 255);
     leds[TOP_INDEX-i] = CHSV(thishue, thissat, 255);
-    LEDS.show();
+    show();
     delay(thisdelay/rand);
   }
   for(int i = rand; i > 0; i-- ) {
     leds[TOP_INDEX+i] = CHSV(thishue, thissat, 0);
     leds[TOP_INDEX-i] = CHSV(thishue, thissat, 0);
-    LEDS.show();
+    show();
     delay(thisdelay/rand);
   }  
 }
@@ -1038,54 +1132,9 @@ void matrix()
   }
   else {leds[0] = CHSV(thishue, thissat, 0);}
   copy_led_array();
-    for(int i = 1; i < NUM_LEDS; i++ ) {
+    for(int i = 1; i < effective_leds; i++ ) {
     leds[i].r = ledsX[i-1][0];
     leds[i].g = ledsX[i-1][1];
     leds[i].b = ledsX[i-1][2];    
   }
 }
-
-/*
-void change_mode(int newmode){
-  thissat = 255;
-  switch (newmode) {
-    case 0: one_color_all(0,0,0); LEDS.show(); break;   //---ALL OFF
-    case 1: one_color_all(255,255,255); LEDS.show(); break;   //---ALL ON
-    case 2: thisdelay = 20; break;                      //---STRIP RAINBOW FADE
-    case 3: thisdelay = 20; thisstep = 10; break;       //---RAINBOW LOOP
-    case 4: thisdelay = 20; break;                      //---RANDOM BURST
-    case 5: thisdelay = 20; thishue = 0; break;         //---CYLON v1
-    case 6: thisdelay = 40; thishue = 0; break;         //---CYLON v2
-    case 7: thisdelay = 40; thishue = 0; break;         //---POLICE LIGHTS SINGLE
-    case 8: thisdelay = 40; thishue = 0; break;         //---POLICE LIGHTS SOLID
-    case 9: thishue = 160; thissat = 50; break;         //---STRIP FLICKER
-    case 10: thisdelay = 15; thishue = 0; break;        //---PULSE COLOR BRIGHTNESS
-    case 11: thisdelay = 15; thishue = 0; break;        //---PULSE COLOR SATURATION
-    case 12: thisdelay = 60; thishue = 180; break;      //---VERTICAL SOMETHING
-    case 13: thisdelay = 100; break;                    //---CELL AUTO - RULE 30 (RED)
-    case 16: thisdelay = 60; thishue = 95; break;       //---RADIATION SYMBOL
-    //---PLACEHOLDER FOR COLOR LOOP VAR DELAY VARS
-    case 19: thisdelay = 35; thishue = 180; break;      //---SIN WAVE BRIGHTNESS
-    case 20: thisdelay = 100; thishue = 0; break;       //---POP LEFT/RIGHT
-    case 21: thisdelay = 100; thishue = 180; break;     //---QUADRATIC BRIGHTNESS CURVE
-    //---PLACEHOLDER FOR FLAME VARS
-    case 23: thisdelay = 50; thisstep = 15; break;      //---VERITCAL RAINBOW
-    case 25: thisdelay = 35; break;                     //---RANDOM COLOR POP
-    case 26: thisdelay = 25; thishue = 0; break;        //---EMERGECNY STROBE
-    case 27: thisdelay = 25; thishue = 0; break;        //---RGB PROPELLER
-    case 28: thisdelay = 100; thishue = 0; break;       //---KITT
-    case 29: thisdelay = 50; thishue = 95; break;       //---MATRIX RAIN
-    case 88: thisdelay = 5; break;                      //---NEW RAINBOW LOOP
-    case 101: one_color_all(255,0,0); LEDS.show(); break;   //---ALL RED
-    case 102: one_color_all(0,255,0); LEDS.show(); break;   //---ALL GREEN
-    case 103: one_color_all(0,0,255); LEDS.show(); break;   //---ALL BLUE
-    case 104: one_color_all(255,255,0); LEDS.show(); break;   //---ALL COLOR X
-    case 105: one_color_all(0,255,255); LEDS.show(); break;   //---ALL COLOR Y
-    case 106: one_color_all(255,0,255); LEDS.show(); break;   //---ALL COLOR Z
-  }
-  bouncedirection = 0;
-  one_color_all(0,0,0);
-  ledMode = newmode;
-}
-*/
-
