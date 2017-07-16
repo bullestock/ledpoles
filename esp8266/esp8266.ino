@@ -435,9 +435,10 @@ void runAutonomous()
         if (autonomous_mode >= AutonomousMode::LAST)
         {
             autonomous_mode = AutonomousMode::FIRST;
-            strip_mode = static_cast<StripMode>(static_cast<int>(strip_mode)+1);
-            if (strip_mode >= StripMode::Last)
-                strip_mode = StripMode::First;
+            auto new_strip_mode = static_cast<StripMode>(static_cast<int>(strip_mode)+1);
+            if (new_strip_mode >= StripMode::Last)
+                new_strip_mode = StripMode::First;
+            set_strip_mode(new_strip_mode);
         }
         Serial.print("Autonomous mode ");
         Serial.print(static_cast<int>(autonomous_mode));
