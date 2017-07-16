@@ -243,28 +243,28 @@ enum class AutonomousMode
     GROWING_BARS,
     FADE,
     CHASE,
-    CHASE_MULTI,    // 5
     PERIODIC_PALETTE,
     RAINBOW,
-    RAINBOW_GLITTER,
     CYLON,
-    BOUNCE,         // 10
+    BOUNCE,
     CONFETTI,
     SINELON,
     BPM,
     JUGGLE,
-    FIRE,           // 15
+    FIRE,
     RANDOM_BURST,
     FLICKER,
     PULSE,
-    PULSE_REV,
-    RADIATION,      // 20
+    RADIATION,
+    RAINBOW_GLITTER,
     COLOR_LOOP,
     SIN_BRIGHT,
     RANDOM_POP,
+    PULSE_REV,
     STROBE,
-    PROPELLER,      // 25
+    PROPELLER,
     KITT,
+    CHASE_MULTI,
     MATRIX,
     LAST
 };
@@ -276,10 +276,8 @@ const char* mode_names[] =
     "Growing bars",
     "Fade",
     "Chase",
-    "Chase multi",
     "Periodic palette",
     "Rainbow",
-    "Rainbow glitter",
     "Cylon",
     "Bounce",
     "Confetti",
@@ -290,14 +288,16 @@ const char* mode_names[] =
     "Random burst",
     "Flicker",
     "Pulse",
-    "Pulse rev",
     "Radiation",
+    "Rainbow glitter",
     "Color loop",
     "Sin bright",
     "Random pop",
+    "Pulse rev",
     "Strobe",
     "Propeller",
     "Kitt",
+    "Chase multi",
     "Matrix",
     "Rainbow loop"
 };
@@ -400,12 +400,12 @@ void Fire2012();
 
 void clear_all()
 {
-    memset(leds, 0, NUM_LEDS * 3);
+    memset(leds, 0, effective_leds * 3);
 }
 
 void all_white()
 {
-    memset(leds, 255, NUM_LEDS * 3);    
+    memset(leds, 255, effective_leds * 3);    
     show();
 }
 
@@ -452,14 +452,14 @@ const static CRGB chase_colours[] = {
 
 void fadeall()
 {
-    for (int i = 0; i < NUM_LEDS; i++)
+    for (int i = 0; i < effective_leds; i++)
         leds[i].nscale8(250);
 }
 
 void addGlitter(fract8 chanceOfGlitter) 
 {
     if (random8() < chanceOfGlitter)
-        leds[random16(NUM_LEDS)] += CRGB::White;
+        leds[random16(effective_leds)] += CRGB::White;
 }
 
 #define CHECK_MODE()                    \
@@ -479,7 +479,7 @@ void runAutonomous()
     {
         for (int j = 0; j < 10; ++j)
         {
-            for (int i = 0; i < NUM_LEDS; i++)
+            for (int i = 0; i < effective_leds; i++)
                 leds[i].nscale8(200);
             show();
             delay(100);
