@@ -44,15 +44,36 @@ const char myDNSName[] = "displaydingo1";
 WiFiUDP Udp;
 
 const int NUM_LEDS_PER_POLE = 30;
-const int NUM_POLES = 10; // ?
-const int NUM_LEDS = NUM_LEDS_PER_POLE*NUM_POLES;
+int NUM_POLES = 0;
+int NUM_LEDS = 0;
+int NUMBER_OF_STRANDS = 1;
 const int UPDATES_PER_SECOND = 100;
-const int PixelPin = D8;
+// Pin for controlling strand 1
+const int PixelPin1 = D8;
+// Pin for controlling strand 2
+const int PixelPin2 = D7;
+// Pins for reading DIP switches:
+// 1    Strand length bit 0
+// 2    Strand length bit 1
+// 3    Strand length bit 2
+// 4    Strand length bit 3
+// 5    One or two strands
+// 6    Mode
+const int StrandLengthPin0 = D6;
+const int StrandLengthPin1 = D5;
+const int StrandLengthPin2 = D4;
+const int StrandLengthPin3 = D3;
+const int NumberOfStrandsPin = D2;
+const int ModePin = D0;
+
 const int BRIGHTNESS = 100; // percent
 
 const uint8_t BeatsPerMinute = 62;
 
-CRGB leds[NUM_LEDS];
+CRGB* leds = nullptr;
+CRGB* ledsX = nullptr;
+// Array of temperature readings at each simulation cell
+byte* heat = nullptr;
 
 CRGBPalette16 currentPalette;
 TBlendType    currentBlending;
@@ -77,7 +98,7 @@ enum class StripMode
 
 StripMode strip_mode = StripMode::WholeStrip;
 
-int effective_leds = NUM_LEDS;
+int effective_leds = 0;
 
 void set_strip_mode(StripMode mode)
 {
@@ -117,7 +138,32 @@ void matrix();
 
 void setup()
 {
-    FastLED.addLeds<WS2811, PixelPin, GRB>(leds, NUM_LEDS).setCorrection(TypicalLEDStrip);
+    pinMode(StrandLengthPin0, INPUT);
+    pinMode(StrandLengthPin1, INPUT);
+    pinMode(StrandLengthPin2, INPUT);
+    pinMode(StrandLengthPin3, INPUT);
+    pinMode(NumberOfStrandsPin, INPUT);
+    pinMode(ModePin, INPUT);
+
+    NUM_POLES = 10; //!! read from switches
+    NUM_LEDS = NUM_LEDS_PER_POLE*NUM_POLES; //!! read from switches
+    NUMBER_OF_STRANDS = 1; //!! read from switches
+    NUM_LEDS *= NUMBER_OF_STRANDS;
+
+    leds = new CRGB[NUM_LEDS];
+    ledsX = new CRGB[NUM_LEDS];
+    heat = new byte[NUM_LEDS];
+    
+    set_strip_mode(StripMode::OnePoleShiftCopy);
+    
+    if (NUMBER_OF_STRANDS > 1)
+    {
+        FastLED.addLeds<WS2811, PixelPin1, GRB>(leds, 0, NUM_LEDS/2).setCorrection(TypicalLEDStrip);
+        FastLED.addLeds<WS2811, PixelPin2, GRB>(leds, NUM_LEDS/2, NUM_LEDS/2).setCorrection(TypicalLEDStrip);
+    }
+    else
+        FastLED.addLeds<WS2811, PixelPin1, GRB>(leds, NUM_LEDS).setCorrection(TypicalLEDStrip);
+    
     FastLED.setBrightness(BRIGHTNESS);
 
     delay(1000);
@@ -388,6 +434,14 @@ void show()
                 leds[j*NUM_LEDS_PER_POLE+(i+j*3)%NUM_LEDS_PER_POLE] = leds[i];
         break;
     }
+
+    if (NUMBER_OF_STRANDS > 1)
+        for (int i = 0; i < NUM_LEDS/2; ++i)
+        {
+            const auto a = leds[NUM_LEDS];
+            leds[NUM_LEDS] = leds[2*NUM_LEDS-1-i];
+            leds[2*NUM_LEDS-1-i] = a;
+        }
     
     FastLED.show();
 }
@@ -510,12 +564,12 @@ void runAutonomous()
 
     case AutonomousMode::FADE:
         // Fade in/fade out
-        for (int j = 0; j < 3; j++ )
+        for (int j = 0; j < 3; j++)
         { 
             memset(leds, 0, effective_leds * 3);
             for (int k = 0; k < 256; k++)
             {
-                for (int i = 0; i < effective_leds; i++ )
+                for (int i = 0; i < effective_leds; i++)
                     switch(j)
                     {
                     case 0: leds[i].r = k; break;
@@ -528,7 +582,7 @@ void runAutonomous()
             }
             for (int k = 255; k >= 0; k--)
             { 
-                for (int i = 0; i < effective_leds; i++ )
+                for (int i = 0; i < effective_leds; i++)
                     switch(j) { 
                     case 0: leds[i].r = k; break;
                     case 1: leds[i].g = k; break;
@@ -890,30 +944,27 @@ bool gReverseDirection = false;
 
 void Fire2012()
 {
-    // Array of temperature readings at each simulation cell
-    static byte heat[NUM_LEDS];
-
     // Step 1.  Cool down every cell a little
-    for( int i = 0; i < effective_leds; i++) {
-        heat[i] = qsub8( heat[i],  random8(0, ((COOLING * 10) / effective_leds) + 2));
+    for(int i = 0; i < effective_leds; i++) {
+        heat[i] = qsub8(heat[i],  random8(0, ((COOLING * 10) / effective_leds) + 2));
     }
   
     // Step 2.  Heat from each cell drifts 'up' and diffuses a little
-    for( int k= effective_leds - 1; k >= 2; k--) {
-        heat[k] = (heat[k - 1] + heat[k - 2] + heat[k - 2] ) / 3;
+    for(int k= effective_leds - 1; k >= 2; k--) {
+        heat[k] = (heat[k - 1] + heat[k - 2] + heat[k - 2]) / 3;
     }
     
     // Step 3.  Randomly ignite new 'sparks' of heat near the bottom
-    if( random8() < SPARKING ) {
+    if(random8() < SPARKING) {
         int y = random8(7);
-        heat[y] = qadd8( heat[y], random8(160,255) );
+        heat[y] = qadd8(heat[y], random8(160,255));
     }
 
     // Step 4.  Map from heat cells to LED colors
-    for( int j = 0; j < effective_leds; j++) {
-        CRGB color = HeatColor( heat[j]);
+    for(int j = 0; j < effective_leds; j++) {
+        CRGB color = HeatColor(heat[j]);
         int pixelnumber;
-        if( gReverseDirection ) {
+        if(gReverseDirection) {
             pixelnumber = (effective_leds-1) - j;
         } else {
             pixelnumber = j;
@@ -927,7 +978,6 @@ void Fire2012()
 int BOTTOM_INDEX = 0;
 int TOP_INDEX = int(effective_leds/2);
 int EVENODD = effective_leds%2;
-int ledsX[NUM_LEDS][3];     //-ARRAY FOR COPYING WHATS IN THE LED STRIP CURRENTLY (FOR CELL-AUTOMATA, MARCH, ETC)
 
 int thisstep = 10;           //-FX LOOPS DELAY VAR
 int thishue = 0;             //-FX LOOPS DELAY VAR
@@ -947,195 +997,193 @@ int bouncedirection = 0;     //-SWITCH FOR COLOR BOUNCE (0-1)
 float tcount = 0.0;          //-INC VAR FOR SIN LOOPS
 int lcount = 0;              //-ANOTHER COUNTING VAR
 
-void copy_led_array(){
-  for(int i = 0; i < effective_leds; i++ ) {
-    ledsX[i][0] = leds[i].r;
-    ledsX[i][1] = leds[i].g;
-    ledsX[i][2] = leds[i].b;
-  }  
+void copy_led_array()
+{
+    for (int i = 0; i < effective_leds; i++)
+        ledsX[i] = leds[i];
 }
 
 void one_color_all(int cred, int cgrn, int cblu) {       //-SET ALL LEDS TO ONE COLOR
-    for(int i = 0 ; i < effective_leds; i++ ) {
-      leds[i].setRGB( cred, cgrn, cblu);
-    }
+    for(int i = 0 ; i < effective_leds; i++)
+        leds[i].setRGB(cred, cgrn, cblu);
 }
 
 void one_color_allHSV(int ahue) {    //-SET ALL LEDS TO ONE COLOR (HSV)
-    for(int i = 0 ; i < effective_leds; i++ ) {
+    for(int i = 0 ; i < effective_leds; i++)
       leds[i] = CHSV(ahue, thissat, 255);
-    }
 }
 
-void random_burst() {                         //-m4-RANDOM INDEX/COLOR
-  idex = random(0, effective_leds);
-  ihue = random(0, 255);  
-  leds[idex] = CHSV(ihue, thissat, 255);
+void random_burst()
+{                         //-m4-RANDOM INDEX/COLOR
+    idex = random(0, effective_leds);
+    ihue = random(0, 255);  
+    leds[idex] = CHSV(ihue, thissat, 255);
 }
 
-void flicker() {                          //-m9-FLICKER EFFECT
-  int random_bright = random(0,255);
-  int random_delay = random(10,100);
-  int random_bool = random(0,random_bright);
-  if (random_bool < 10) {
-    for(int i = 0 ; i < effective_leds; i++ ) {
-      leds[i] = CHSV(thishue, thissat, random_bright);
-    }
-  }
+void flicker()
+{                          //-m9-FLICKER EFFECT
+    int random_bright = random(0,255);
+    int random_delay = random(10,100);
+    int random_bool = random(0,random_bright);
+    if (random_bool < 10)
+        for(int i = 0 ; i < effective_leds; i++)
+            leds[i] = CHSV(thishue, thissat, random_bright);
 }
 
-void pulse_one_color_all() {              //-m10-PULSE BRIGHTNESS ON ALL LEDS TO ONE COLOR 
-  if (bouncedirection == 0) {
-    ibright++;
-    if (ibright >= 255) {bouncedirection = 1;}
-  }
-  if (bouncedirection == 1) {
-    ibright = ibright - 1;
-    if (ibright <= 1) {bouncedirection = 0;}         
-  }  
-    for(int idex = 0 ; idex < effective_leds; idex++ ) {
-      leds[idex] = CHSV(thishue, thissat, ibright);
+void pulse_one_color_all()
+{
+    //-m10-PULSE BRIGHTNESS ON ALL LEDS TO ONE COLOR 
+    if (bouncedirection == 0) {
+        ibright++;
+        if (ibright >= 255)
+            bouncedirection = 1;
     }
+    if (bouncedirection == 1)
+    {
+        ibright = ibright - 1;
+        if (ibright <= 1)
+            bouncedirection = 0;
+    }  
+    for(int idex = 0 ; idex < effective_leds; idex++)
+        leds[idex] = CHSV(thishue, thissat, ibright);
 }
 
 void pulse_one_color_all_rev() {           //-m11-PULSE SATURATION ON ALL LEDS TO ONE COLOR 
-  if (bouncedirection == 0) {
-    isat++;
-    if (isat >= 255) {bouncedirection = 1;}
-  }
-  if (bouncedirection == 1) {
-    isat = isat - 1;
-    if (isat <= 1) {bouncedirection = 0;}         
-  }  
-    for(int idex = 0 ; idex < effective_leds; idex++ ) {
-      leds[idex] = CHSV(thishue, isat, 255);
+    if (bouncedirection == 0) {
+        isat++;
+        if (isat >= 255) {bouncedirection = 1;}
+    }
+    if (bouncedirection == 1) {
+        isat = isat - 1;
+        if (isat <= 1) {bouncedirection = 0;}         
+    }  
+    for(int idex = 0 ; idex < effective_leds; idex++) {
+        leds[idex] = CHSV(thishue, isat, 255);
     }
 }
 
 void random_red() {                       //QUICK 'N DIRTY RANDOMIZE TO GET CELL AUTOMATA STARTED  
-  int temprand;
-  for(int i = 0; i < effective_leds; i++ ) {
-    temprand = random(0,100);
-    if (temprand > 50) {leds[i].r = 255;}
-    if (temprand <= 50) {leds[i].r = 0;}
-    leds[i].b = 0; leds[i].g = 0;
-  }
+    int temprand;
+    for(int i = 0; i < effective_leds; i++) {
+        temprand = random(0,100);
+        if (temprand > 50) {leds[i].r = 255;}
+        if (temprand <= 50) {leds[i].r = 0;}
+        leds[i].b = 0; leds[i].g = 0;
+    }
 }
 
 void radiation() {                   //-m16-SORT OF RADIATION SYMBOLISH- 
-  int N3  = int(effective_leds/3);
-  int N6  = int(effective_leds/6);  
-  int N12 = int(effective_leds/12);  
-  for(int i = 0; i < N6; i++ ) {     //-HACKY, I KNOW...
-    tcount = tcount + .02;
-    if (tcount > 3.14) {tcount = 0.0;}
-    ibright = int(sin(tcount)*255);    
-    int j0 = (i + effective_leds - N12) % effective_leds;
-    int j1 = (j0+N3) % effective_leds;
-    int j2 = (j1+N3) % effective_leds;    
-    leds[j0] = CHSV(thishue, thissat, ibright);
-    leds[j1] = CHSV(thishue, thissat, ibright);
-    leds[j2] = CHSV(thishue, thissat, ibright);    
-  }    
+    int N3  = int(effective_leds/3);
+    int N6  = int(effective_leds/6);  
+    int N12 = int(effective_leds/12);  
+    for(int i = 0; i < N6; i++) {     //-HACKY, I KNOW...
+        tcount = tcount + .02;
+        if (tcount > 3.14) {tcount = 0.0;}
+        ibright = int(sin(tcount)*255);    
+        int j0 = (i + effective_leds - N12) % effective_leds;
+        int j1 = (j0+N3) % effective_leds;
+        int j2 = (j1+N3) % effective_leds;    
+        leds[j0] = CHSV(thishue, thissat, ibright);
+        leds[j1] = CHSV(thishue, thissat, ibright);
+        leds[j2] = CHSV(thishue, thissat, ibright);    
+    }    
 }
 
 void color_loop_vardelay() {                    //-m17-COLOR LOOP (SINGLE LED) w/ VARIABLE DELAY
-  idex++;
-  if (idex > effective_leds) {idex = 0;}
-  for(int i = 0; i < effective_leds; i++ ) {
-    if (i == idex) {
-      leds[i] = CHSV(0, thissat, 255);
+    idex++;
+    if (idex > effective_leds) {idex = 0;}
+    for(int i = 0; i < effective_leds; i++) {
+        if (i == idex) {
+            leds[i] = CHSV(0, thissat, 255);
+        }
+        else {
+            leds[i].r = 0; leds[i].g = 0; leds[i].b = 0;
+        }
     }
-    else {
-      leds[i].r = 0; leds[i].g = 0; leds[i].b = 0;
-    }
-  }
 }
 
 void sin_bright_wave() {        //-m19-BRIGHTNESS SINE WAVE
-  for(int i = 0; i < effective_leds; i++ ) {
-    tcount = tcount + .1;
-    if (tcount > 3.14) {tcount = 0.0;}
-    ibright = int(sin(tcount)*255);
-    leds[i] = CHSV(thishue, thissat, ibright);
-  }
+    for(int i = 0; i < effective_leds; i++) {
+        tcount = tcount + .1;
+        if (tcount > 3.14) {tcount = 0.0;}
+        ibright = int(sin(tcount)*255);
+        leds[i] = CHSV(thishue, thissat, ibright);
+    }
 }
 
 void random_color_pop() {                         //-m25-RANDOM COLOR POP
-  idex = random(0, effective_leds);
-  ihue = random(0, 255);
-  one_color_all(0, 0, 0);
-  leds[idex] = CHSV(ihue, thissat, 255);
+    idex = random(0, effective_leds);
+    ihue = random(0, 255);
+    one_color_all(0, 0, 0);
+    leds[idex] = CHSV(ihue, thissat, 255);
 }
 
 void ems_lightsSTROBE() {                  //-m26-EMERGENCY LIGHTS (STROBE LEFT/RIGHT)
-  int thishue = 0;
-  int thathue = (thishue + 160) % 255;
-  int thisdelay = 25;
-  for(int x = 0 ; x < 5; x++ ) {
-    for(int i = 0 ; i < TOP_INDEX; i++ ) {
-        leds[i] = CHSV(thishue, thissat, 255);
+    int thishue = 0;
+    int thathue = (thishue + 160) % 255;
+    int thisdelay = 25;
+    for(int x = 0 ; x < 5; x++) {
+        for(int i = 0 ; i < TOP_INDEX; i++) {
+            leds[i] = CHSV(thishue, thissat, 255);
+        }
+        show(); delay(thisdelay); 
+        one_color_all(0, 0, 0);
+        show(); delay(thisdelay);
     }
-    show(); delay(thisdelay); 
-    one_color_all(0, 0, 0);
-    show(); delay(thisdelay);
-  }
-  for(int x = 0 ; x < 5; x++ ) {
-    for(int i = TOP_INDEX ; i < effective_leds; i++ ) {
-        leds[i] = CHSV(thathue, thissat, 255);
+    for(int x = 0 ; x < 5; x++) {
+        for(int i = TOP_INDEX ; i < effective_leds; i++) {
+            leds[i] = CHSV(thathue, thissat, 255);
+        }
+        show(); delay(thisdelay);
+        one_color_all(0, 0, 0);
+        show(); delay(thisdelay);
     }
-    show(); delay(thisdelay);
-    one_color_all(0, 0, 0);
-    show(); delay(thisdelay);
-  }
 }
 
 void rgb_propeller() {                           //-m27-RGB PROPELLER 
-  idex++;
-  int ghue = (thishue + 80) % 255;
-  int bhue = (thishue + 160) % 255;
-  int N3  = int(effective_leds/3);
-  int N6  = int(effective_leds/6);  
-  int N12 = int(effective_leds/12);  
-  for(int i = 0; i < N3; i++ ) {
-    int j0 = (idex + i + effective_leds - N12) % effective_leds;
-    int j1 = (j0+N3) % effective_leds;
-    int j2 = (j1+N3) % effective_leds;    
-    leds[j0] = CHSV(thishue, thissat, 255);
-    leds[j1] = CHSV(ghue, thissat, 255);
-    leds[j2] = CHSV(bhue, thissat, 255);    
-  }
+    idex++;
+    int ghue = (thishue + 80) % 255;
+    int bhue = (thishue + 160) % 255;
+    int N3  = int(effective_leds/3);
+    int N6  = int(effective_leds/6);  
+    int N12 = int(effective_leds/12);  
+    for(int i = 0; i < N3; i++) {
+        int j0 = (idex + i + effective_leds - N12) % effective_leds;
+        int j1 = (j0+N3) % effective_leds;
+        int j2 = (j1+N3) % effective_leds;    
+        leds[j0] = CHSV(thishue, thissat, 255);
+        leds[j1] = CHSV(ghue, thissat, 255);
+        leds[j2] = CHSV(bhue, thissat, 255);    
+    }
 }
 
 void kitt()
 {
-  int thisdelay = 100;
-  int rand = random(0, TOP_INDEX);
-  for(int i = 0; i < rand; i++ ) {
-    leds[TOP_INDEX+i] = CHSV(thishue, thissat, 255);
-    leds[TOP_INDEX-i] = CHSV(thishue, thissat, 255);
-    show();
-    delay(thisdelay/rand);
-  }
-  for(int i = rand; i > 0; i-- ) {
-    leds[TOP_INDEX+i] = CHSV(thishue, thissat, 0);
-    leds[TOP_INDEX-i] = CHSV(thishue, thissat, 0);
-    show();
-    delay(thisdelay/rand);
-  }  
+    int thisdelay = 100;
+    int rand = random(0, TOP_INDEX);
+    for(int i = 0; i < rand; i++) {
+        leds[TOP_INDEX+i] = CHSV(thishue, thissat, 255);
+        leds[TOP_INDEX-i] = CHSV(thishue, thissat, 255);
+        show();
+        delay(thisdelay/rand);
+    }
+    for(int i = rand; i > 0; i--) {
+        leds[TOP_INDEX+i] = CHSV(thishue, thissat, 0);
+        leds[TOP_INDEX-i] = CHSV(thishue, thissat, 0);
+        show();
+        delay(thisdelay/rand);
+    }  
 }
 
 void matrix()
 {
-  int rand = random(0, 100);
-  if (rand > 90) {
-    leds[0] = CHSV(thishue, thissat, 255);
-  }
-  else {leds[0] = CHSV(thishue, thissat, 0);}
-  copy_led_array();
-    for(int i = 1; i < effective_leds; i++ ) {
-    leds[i].r = ledsX[i-1][0];
-    leds[i].g = ledsX[i-1][1];
-    leds[i].b = ledsX[i-1][2];    
-  }
+    int rand = random(0, 100);
+    if (rand > 90) {
+        leds[0] = CHSV(thishue, thissat, 255);
+    }
+    else {leds[0] = CHSV(thishue, thissat, 0);}
+    copy_led_array();
+    for(int i = 1; i < effective_leds; i++) {
+        leds[i] = ledsX[i-1];
+    }
 }
