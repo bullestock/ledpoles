@@ -2,7 +2,6 @@ import socket, time
 
 # addressing information of target
 IPADDR = '192.168.0.58'
-#IPADDR = '10.42.2.246'
 PORTNUM = 7890
 
 # initialize a socket, think of it as a cable

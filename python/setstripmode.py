@@ -15,7 +15,7 @@ s.connect((IPADDR, PORTNUM))
 
 d = 0.2
 
-data = '5805%02x' % mode
+data = '5904%02x' % mode
     
 s.send(data.decode('hex'))
 
