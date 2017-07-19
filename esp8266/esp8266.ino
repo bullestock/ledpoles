@@ -30,7 +30,7 @@
 #include <ESP8266WiFi.h>
 #include <ESP8266mDNS.h>
 
-const char* version = "0.0.5";
+const char* version = "0.0.6";
 
 const char* ssids[] = {
     "bullestock-guest",
@@ -52,19 +52,6 @@ const int UPDATES_PER_SECOND = 100;
 const int PixelPin1 = D8;
 // Pin for controlling strand 2
 const int PixelPin2 = D7;
-// Pins for reading DIP switches:
-// 1    Strand length bit 0
-// 2    Strand length bit 1
-// 3    Strand length bit 2
-// 4    Strand length bit 3
-// 5    One or two strands
-// 6    Mode
-const int StrandLengthPin0 = D6;
-const int StrandLengthPin1 = D5;
-const int StrandLengthPin2 = D4;
-const int StrandLengthPin3 = D3;
-const int NumberOfStrandsPin = D2;
-const int ModePin = D0;
 
 const int BRIGHTNESS = 100; // percent
 
@@ -138,16 +125,9 @@ void matrix();
 
 void setup()
 {
-    pinMode(StrandLengthPin0, INPUT);
-    pinMode(StrandLengthPin1, INPUT);
-    pinMode(StrandLengthPin2, INPUT);
-    pinMode(StrandLengthPin3, INPUT);
-    pinMode(NumberOfStrandsPin, INPUT);
-    pinMode(ModePin, INPUT);
-
-    NUM_POLES = 10; //!! read from switches
-    NUM_LEDS = NUM_LEDS_PER_POLE*NUM_POLES; //!! read from switches
-    NUMBER_OF_STRANDS = 1; //!! read from switches
+    NUM_POLES = 4; //!!
+    NUM_LEDS = NUM_LEDS_PER_POLE*NUM_POLES; //!!
+    NUMBER_OF_STRANDS = 2;
     NUM_LEDS *= NUMBER_OF_STRANDS;
 
     leds = new CRGB[NUM_LEDS];
@@ -168,7 +148,7 @@ void setup()
 
     delay(1000);
     Serial.begin(115200);
-    Serial.print("\nSommerhack LED ");
+    Serial.print("\r\nSommerhack LED ");
     Serial.println(version);
 
     // Connect to WiFi network
@@ -221,11 +201,12 @@ void setup()
     }
 
     Udp.begin(7890);
-    all_white();
     Serial.println("Set to all white");
+    all_white();
     delay(1000);
     clear_all();
-
+    show();
+    
     const auto now = millis();
     auto_last_mode_switch = now;
     hue_millis = now;
@@ -237,7 +218,7 @@ bool dirtyshow = false;
 
 enum class AutonomousMode
 {
-    OFF,
+    OFF = -1,
     CYCLE,
     FIRST = CYCLE,
     GROWING_BARS,
@@ -304,6 +285,7 @@ const char* mode_names[] =
 
 AutonomousMode autonomous_mode = AutonomousMode::FIRST;
 bool auto_mode_switch = true;
+uint16_t autonomous_speed = 1000/UPDATES_PER_SECOND;
 
 void parse_pixel_data(uint8_t* data, int size)
 {
@@ -336,7 +318,8 @@ void parse_mode(uint8_t* data, int size)
         return;
     auto_mode_switch = false;
     autonomous_mode = static_cast<AutonomousMode>(*cmdptr);
-    Serial.printf("Set mode %d\n", autonomous_mode);
+    set_strip_mode(strip_mode);
+    Serial.printf("Set mode %d\r\n", autonomous_mode);
 }
 
 void parse_strip_mode(uint8_t* data, int size)
@@ -345,7 +328,16 @@ void parse_strip_mode(uint8_t* data, int size)
         return;
     auto cmdptr = (uint8_t*) data;
     set_strip_mode(static_cast<StripMode>(*cmdptr));
-    Serial.printf("Set mode %d\n", autonomous_mode);
+    Serial.printf("Set strip mode %d\r\n", strip_mode);
+}
+
+void parse_speed(uint8_t* data, int size)
+{
+    if (size < sizeof(uint8_t))
+        return;
+    auto cmdptr = (uint16_t*) data;
+    autonomous_speed = *cmdptr;
+    Serial.printf("Set speed %d\r\n", autonomous_speed);
 }
 
 
@@ -377,6 +369,11 @@ void clientEventUdp()
         case 1113:
             // Set autonomous strip mode (1 byte)
             parse_strip_mode(rcv + sizeof(int16_t), len - sizeof(int16_t));
+            break;
+            
+        case 1114:
+            // Set autonomous speed (1 byte)
+            parse_speed(rcv + sizeof(int16_t), len - sizeof(int16_t));
             break;
             
         default:
@@ -499,12 +496,10 @@ void runAutonomous()
         Serial.print(": ");
         Serial.println(mode_names[static_cast<int>(autonomous_mode)]);
     }
-    delay(1);
 
     switch (autonomous_mode)
     {
-    case AutonomousMode::CYCLE:
-        // one at a time
+    case AutonomousMode::CYCLE:        // one at a time
         if (current_loop >= 3)
             current_loop = 0;
         if (current_led >= effective_leds)
@@ -683,11 +678,6 @@ void runAutonomous()
             current_led = 0;
         // Set the i'th led to red 
         leds[current_led] = CHSV(starthue++, 255, 255);
-        // Show the leds
-        show(); 
-        fadeall();
-        // Wait a little bit before we loop around and do it again
-        FastLED.delay(10);
         ++current_led;
         break;
 
@@ -716,7 +706,7 @@ void runAutonomous()
             byte dothue = 0;
             for (int i = 0; i < 8; i++)
             {
-                leds[beatsin16(i+7,0,effective_leds)] |= CHSV(dothue, 200, 255);
+                leds[beatsin16(i+7, 0, effective_leds)] |= CHSV(dothue, 200, 255);
                 dothue += 32;
             }
         }
@@ -780,7 +770,7 @@ void runAutonomous()
     }
 
     show();
-    delay(1000 / UPDATES_PER_SECOND);
+    delay(autonomous_speed);
 
     if (now - hue_millis >= 20)
     {
