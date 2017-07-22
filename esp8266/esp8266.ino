@@ -52,8 +52,13 @@ const int UPDATES_PER_SECOND = 100;
 const int PixelPin1 = D8;
 // Pin for controlling strand 2
 const int PixelPin2 = D7;
+// Pin for controlling status LED
+const int StatusPin = D6;
 
 const int BRIGHTNESS = 100; // percent
+
+// Blink duration when connected
+const int BLINK_TICK_INTERVAL = 2000;
 
 const uint8_t BeatsPerMinute = 62;
 
@@ -125,6 +130,9 @@ void matrix();
 
 void setup()
 {
+    pinMode(StatusPin, OUTPUT);
+    digitalWrite(StatusPin, 0);
+    
     NUM_POLES = 4; //!!
     NUM_LEDS = NUM_LEDS_PER_POLE*NUM_POLES; //!!
     NUMBER_OF_STRANDS = 2;
@@ -161,22 +169,33 @@ void setup()
         Serial.println(ssids[index]);
 
         WiFi.begin(ssids[index], password);
+        digitalWrite(StatusPin, 0);
 
         int i = 0;
         bool connected = false;
         while (i < 15)
         {
+            digitalWrite(StatusPin, 1);
+            delay(250);
             if (WiFi.status() == WL_CONNECTED)
             {
                 connected = true;
                 break;
             }
-            delay(500);
+            digitalWrite(StatusPin, 0);
+            delay(250);
             Serial.print(".");
             ++i;
         }
         if (connected)
         {
+            for (int i = 0; i < 10; ++i)
+            {
+                delay(80);
+                digitalWrite(StatusPin, 1);
+                delay(80);
+                digitalWrite(StatusPin, 0);
+            }
             Serial.println("");
             Serial.print("Connected to ");
             Serial.println(ssids[index]);
@@ -421,13 +440,13 @@ void show()
 
     case StripMode::OnePoleCopy:
         for (int i = 0; i < NUM_LEDS_PER_POLE; ++i)
-            for (int j = 1; j < NUM_POLES; ++j)
+            for (int j = 1; j < NUM_POLES*NUMBER_OF_STRANDS; ++j)
                 leds[j*NUM_LEDS_PER_POLE+i] = leds[i];
         break;
 
     case StripMode::OnePoleShiftCopy:
         for (int i = 0; i < NUM_LEDS_PER_POLE; ++i)
-            for (int j = 1; j < NUM_POLES; ++j)
+            for (int j = 1; j < NUM_POLES*NUMBER_OF_STRANDS; ++j)
                 leds[j*NUM_LEDS_PER_POLE+(i+j*3)%NUM_LEDS_PER_POLE] = leds[i];
         break;
     }
@@ -578,7 +597,8 @@ void runAutonomous()
             for (int k = 255; k >= 0; k--)
             { 
                 for (int i = 0; i < effective_leds; i++)
-                    switch(j) { 
+                    switch(j)
+                    {
                     case 0: leds[i].r = k; break;
                     case 1: leds[i].g = k; break;
                     case 2: leds[i].b = k; break;
@@ -779,6 +799,8 @@ void runAutonomous()
     }
 }
 
+unsigned long blink_tick = 0;
+bool status_led_on = false;
 
 void loop()
 {
@@ -790,6 +812,14 @@ void loop()
     {
         FastLED.show();
         dirtyshow = false;
+    }
+
+    const auto ticks = millis();
+    if (ticks - blink_tick > BLINK_TICK_INTERVAL)
+    {
+        blink_tick = ticks;
+        status_led_on = !status_led_on;
+        digitalWrite(StatusPin, status_led_on);
     }
 }
 
