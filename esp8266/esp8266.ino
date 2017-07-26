@@ -31,7 +31,7 @@
 #include <ESP8266WiFi.h>
 #include <ESP8266mDNS.h>
 
-const char* version = "0.0.6";
+const char* version = "0.1.0";
 
 const char* ssids[] = {
     "bullestock-guest",
@@ -45,7 +45,7 @@ const char myDNSName[] = "displaydingo1";
 WiFiUDP Udp;
 
 const int NUM_LEDS_PER_POLE = 30;
-const int NUM_POLES_PER_STRAND = 4; //!!
+const int NUM_POLES_PER_STRAND = 12;
 const int NUM_OF_STRANDS = 2;
 const int NUM_LEDS = NUM_OF_STRANDS*NUM_POLES_PER_STRAND*NUM_LEDS_PER_POLE;
 const int UPDATES_PER_SECOND = 100;
@@ -151,6 +151,9 @@ void setup()
     Serial.print("\r\nSommerhack LED ");
     Serial.println(version);
 
+    Serial.print("Poles per strand: ");
+    Serial.println(NUM_POLES_PER_STRAND);
+    
     // Connect to WiFi network
     int index = 0;
     while (1)
@@ -1115,7 +1118,8 @@ void color_loop_vardelay() {                    //-m17-COLOR LOOP (SINGLE LED) w
 void sin_bright_wave() {        //-m19-BRIGHTNESS SINE WAVE
     for (int i = 0; i < effective_leds; i++) {
         tcount = tcount + .1;
-        if (tcount > 3.14) {tcount = 0.0;}
+        if (tcount > 3.14)
+            tcount = 0.0;
         ibright = int(sin(tcount)*255);
         leds[i] = CHSV(thishue, thissat, ibright);
     }
