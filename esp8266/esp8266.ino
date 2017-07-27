@@ -34,6 +34,7 @@
 const char* version = "0.1.0";
 
 const char* ssids[] = {
+    "Vammen Camping",
     "bullestock-guest",
     "hal9k"
 };
@@ -113,8 +114,6 @@ void set_strip_mode(StripMode mode)
 }
 
 void clear_all();
-void all_white();
-void all_black();
 void show();
 void random_burst();
 void flicker();
@@ -233,7 +232,6 @@ enum class AutonomousMode
     CYCLE,
     FIRST = CYCLE,
     GROWING_BARS,
-    FADE,
     CHASE,
     PERIODIC_PALETTE,
     RAINBOW,
@@ -266,7 +264,6 @@ const char* mode_names[] =
     "", // off
     "Cycle",
     "Growing bars",
-    "Fade",
     "Chase",
     "Periodic palette",
     "Rainbow",
@@ -294,7 +291,7 @@ const char* mode_names[] =
     "Rainbow loop"
 };
 
-AutonomousMode autonomous_mode = AutonomousMode::FIRST;
+AutonomousMode autonomous_mode = AutonomousMode::RAINBOW_GLITTER;
 bool auto_mode_switch = true;
 uint16_t autonomous_speed = 1000/UPDATES_PER_SECOND;
 
@@ -348,6 +345,8 @@ void parse_speed(uint8_t* data, int size)
         return;
     auto cmdptr = (uint16_t*) data;
     autonomous_speed = *cmdptr;
+    if (autonomous_speed < 10)
+        autonomous_speed = 10;
     Serial.printf("Set speed %d\r\n", autonomous_speed);
 }
 
@@ -411,18 +410,6 @@ void clear_all()
     memset(leds, 0, effective_leds * 3);
 }
 
-void all_white()
-{
-    memset(leds, 255, effective_leds * 3);    
-    show();
-}
-
-void all_black()
-{
-    clear_all();
-    show();
-}
-
 void show()
 {
     switch (strip_mode)
@@ -474,14 +461,6 @@ void addGlitter(fract8 chanceOfGlitter)
     if (random8() < chanceOfGlitter)
         leds[random16(effective_leds)] += CRGB::White;
 }
-
-#define CHECK_MODE()                    \
-    if (autonomous_mode != old_mode)    \
-    {                                   \
-        old_mode = autonomous_mode;     \
-        current_led = current_loop = 0; \
-        break;                          \
-    }
 
 void runAutonomous()
 {
@@ -573,40 +552,6 @@ void runAutonomous()
         ++current_led;
         break;
 
-    case AutonomousMode::FADE:
-        // Fade in/fade out
-        for (int j = 0; j < 3; j++)
-        { 
-            memset(leds, 0, effective_leds * 3);
-            for (int k = 0; k < 256; k++)
-            {
-                for (int i = 0; i < effective_leds; i++)
-                    switch(j)
-                    {
-                    case 0: leds[i].r = k; break;
-                    case 1: leds[i].g = k; break;
-                    case 2: leds[i].b = k; break;
-                    }
-                show();
-                delay(3);
-                CHECK_MODE();
-            }
-            for (int k = 255; k >= 0; k--)
-            { 
-                for (int i = 0; i < effective_leds; i++)
-                    switch(j)
-                    {
-                    case 0: leds[i].r = k; break;
-                    case 1: leds[i].g = k; break;
-                    case 2: leds[i].b = k; break;
-                    }
-                show();
-                delay(3);
-                CHECK_MODE();
-            }
-        }
-        break;
-
     case AutonomousMode::CHASE:
         memset(leds, 0, effective_leds * 3);
         for (size_t c = 0; c < sizeof(chase_colours)/sizeof(chase_colours[0]); ++c)
@@ -618,7 +563,6 @@ void runAutonomous()
                 leds[i] = chase_colours[c];
                 show();
                 delay(50);
-                CHECK_MODE();
             }
             leds[effective_leds-1] = CRGB::Black;
         }
@@ -628,7 +572,6 @@ void runAutonomous()
         for (size_t c = 0; c < sizeof(chase_colours)/sizeof(chase_colours[0]); ++c)
         {
             memset(leds, 0, effective_leds * 3);
-            show();
             for (int i = 0; i < effective_leds; ++i)
             {
                 if (i)
@@ -636,7 +579,6 @@ void runAutonomous()
                 leds[i] = chase_colours[c];
                 show();
                 delay(50);
-                CHECK_MODE();
             }
             leds[effective_leds-1] = CRGB::Black;
             show();
@@ -648,7 +590,6 @@ void runAutonomous()
                 leds[effective_leds-1-i] = chase_colours[c];
                 show();
                 delay(50);
-                CHECK_MODE();
             }
             leds[effective_leds-1] = CRGB::Black;
         }
@@ -667,7 +608,6 @@ void runAutonomous()
                         leds[i] = chase_colours[c];
                 show();
                 delay(100);
-                CHECK_MODE();
             }
             leds[effective_leds-1] = CRGB::Black;
         }
