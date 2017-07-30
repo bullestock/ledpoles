@@ -219,6 +219,7 @@ void parse_pixel_data(uint8_t* data, int size)
     {
         run_autonomously = false;
         Serial.println("Switch to non-autonomous mode");
+        FastLED.setBrightness(255);
     }
     
     auto cmdptr = (int16_t*) data;
@@ -352,7 +353,7 @@ void loop()
     
     if (dirtyshow)
     {
-        FastLED.show();
+        show();
         dirtyshow = false;
     }
 
