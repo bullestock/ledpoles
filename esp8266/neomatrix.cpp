@@ -90,6 +90,7 @@ void neomatrix_change_program(const char* name)
     }
     current = p->launch();
     auto_program_switch = false;
+    clear_all();
 }
 
 void neomatrix_set_speed(int fps)
