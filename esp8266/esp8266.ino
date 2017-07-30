@@ -154,6 +154,7 @@ void setup()
     Serial.println(NUM_POLES_PER_STRAND);
     
     // Connect to WiFi network
+    WiFi.mode(WIFI_STA);
     int index = 0;
     while (1)
     {
@@ -287,8 +288,7 @@ const char* mode_names[] =
     "Propeller",
     "Kitt",
     "Chase multi",
-    "Matrix",
-    "Rainbow loop"
+    "Matrix"
 };
 
 AutonomousMode autonomous_mode = AutonomousMode::RAINBOW_GLITTER;
