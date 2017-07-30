@@ -24,6 +24,7 @@ void neomatrix_init()
 {
     currentFactory = ProgramFactory::first;
     current = currentFactory->launch();
+    Serial.printf("Launched %s\n", currentFactory->name);
     startTime = millis();
 }
 
