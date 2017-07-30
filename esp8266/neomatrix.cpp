@@ -59,8 +59,6 @@ void program_loop()
         if (!currentFactory)
             currentFactory = ProgramFactory::first;
         current = currentFactory->launch();
-        Serial.print("Run ");
-        Serial.println(currentFactory->name);
         startTime = now;
     }
 }

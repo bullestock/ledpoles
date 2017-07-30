@@ -8,6 +8,6 @@ const CRGB ChaseColours::chase_colours[] = {
 void ChaseColours::next()
 {
     ++idx;
-    if (idx >= sizeof(chase_colours))
+    if (idx >= sizeof(chase_colours)/sizeof(CRGB))
         idx = 0;
 }

@@ -11,4 +11,5 @@
 
 extern CRGB* leds;
 extern int effective_leds;
+extern uint16_t autonomous_speed;
 

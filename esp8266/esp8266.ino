@@ -48,10 +48,10 @@ const char myDNSName[] = "displaydingo1";
 WiFiUDP Udp;
 
 const int NUM_LEDS_PER_POLE = 30;
-const int NUM_POLES_PER_STRAND = 12;
-const int NUM_OF_STRANDS = 2;
+const int NUM_POLES_PER_STRAND = 1;
+const int NUM_OF_STRANDS = 1;
 const int NUM_LEDS = NUM_OF_STRANDS*NUM_POLES_PER_STRAND*NUM_LEDS_PER_POLE;
-const int UPDATES_PER_SECOND = 100;
+const int UPDATES_PER_SECOND = 10;
 // Pin for controlling strand 1
 const int PixelPin1 = D8;
 // Pin for controlling strand 2
@@ -66,7 +66,7 @@ const int BLINK_TICK_INTERVAL = 2000;
 
 const uint8_t BeatsPerMinute = 62;
 
-CRGB leds[NUM_LEDS];
+CRGB* leds = nullptr;
 static CRGB ledsX[NUM_LEDS];
 // Array of temperature readings at each simulation cell
 static byte heat[NUM_LEDS];
@@ -132,6 +132,8 @@ void matrix();
 
 void setup()
 {
+    leds = new CRGB[NUM_LEDS];
+    
     pinMode(StatusPin, OUTPUT);
     digitalWrite(StatusPin, 0);
     
@@ -154,7 +156,8 @@ void setup()
 
     Serial.print("Poles per strand: ");
     Serial.println(NUM_POLES_PER_STRAND);
-    
+
+#if 0
     // Connect to WiFi network
     WiFi.mode(WIFI_STA);
     int index = 0;
@@ -217,6 +220,8 @@ void setup()
     }
 
     Udp.begin(7890);
+#endif
+    
     clear_all();
     show();
     

@@ -21,9 +21,13 @@ public:
     uint32_t operator()()
     {
         uint32_t current = getCycleCount();
+        Serial.printf("current %u", current);
         const uint32_t divisor = HZ / rate;
+        Serial.printf("divisor %u", divisor);
         residual += current - previous;
+        Serial.printf("residual %u", residual);
         counter = (counter + residual / divisor) % period;
+        Serial.printf("counter %u", counter);
         residual %= divisor;
         previous = current;
         return counter;
