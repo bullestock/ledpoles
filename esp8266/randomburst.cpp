@@ -6,7 +6,7 @@ class RandomBurst : public Program
 {
 public:
     RandomBurst()
-        : Program(1)
+        : Program(3)
     {
     }
 
