@@ -1,6 +1,5 @@
 #include "program.hpp"
 #include "display.hpp"
-#include "chasecolours.hpp"
 
 #// flicker effect
 class Flicker : public Program

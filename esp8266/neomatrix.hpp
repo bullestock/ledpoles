@@ -11,3 +11,4 @@ void neomatrix_init();
 void neomatrix_run();
 void neomatrix_change_program(const char* name);
 void neomatrix_set_speed(int fps);
+void neomatrix_start_autorun();

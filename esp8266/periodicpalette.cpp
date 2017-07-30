@@ -1,6 +1,5 @@
 #include "program.hpp"
 #include "display.hpp"
-#include "chasecolours.hpp"
 
 const TProgmemPalette16 myRedWhiteBluePalette_p PROGMEM =
 {

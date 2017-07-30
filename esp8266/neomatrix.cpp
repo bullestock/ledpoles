@@ -26,7 +26,7 @@ void neomatrix_init()
     startTime = millis();
 }
 
-#define RUNTIME 16000
+#define RUNTIME 60000
 #define FADETIME 3000
 #define FADEIN FADETIME
 #define FADEOUT (RUNTIME-FADETIME)
@@ -96,4 +96,10 @@ void neomatrix_set_speed(int fps)
 {
     if (current)
         current->limiter.setFps(fps);
+}
+
+void neomatrix_start_autorun()
+{
+    run_autonomously = true;
+    auto_program_switch = true;
 }

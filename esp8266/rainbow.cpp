@@ -1,6 +1,5 @@
 #include "program.hpp"
 #include "display.hpp"
-#include "chasecolours.hpp"
 
 // rainbow gliding across the strip
 class Rainbow : public Program

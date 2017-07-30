@@ -1,6 +1,5 @@
 #include "program.hpp"
 #include "display.hpp"
-#include "chasecolours.hpp"
 
 // a single dot traversing the strip, changing colour once it reaches the end
 class RandomBurst : public Program

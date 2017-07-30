@@ -1,6 +1,5 @@
 #include "program.hpp"
 #include "display.hpp"
-#include "chasecolours.hpp"
 
 // emergency lights (strobe left/right)
 class Emergency : public Program

@@ -1,6 +1,5 @@
 #include "program.hpp"
 #include "display.hpp"
-#include "chasecolours.hpp"
 
 // eight colored dots, weaving in and out of sync with each other
 class Juggle : public Program
