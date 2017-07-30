@@ -105,17 +105,6 @@ void set_strip_mode(StripMode mode)
 
 void clear_all();
 void show();
-void random_burst();
-void flicker();
-void pulse_one_color_all();
-void pulse_one_color_all_rev();
-void radiation();
-void color_loop_vardelay();
-void sin_bright_wave();
-void random_color_pop();
-void rgb_propeller();
-void kitt();
-void matrix();
 
 void setup()
 {
