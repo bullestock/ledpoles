@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   xmlns:dc="http://purl.org/dc/elements/1.1/"
+   xmlns:cc="http://creativecommons.org/ns#"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   width="1220mm"
+   height="610mm"
+   viewBox="0 0 4322.8346 2161.4173"
+   id="svg8254"
+   version="1.1"
+   inkscape:version="0.92.1 unknown"
+   sodipodi:docname="box5.svg">
+  <defs
+     id="defs8256" />
+  <sodipodi:namedview
+     id="base"
+     pagecolor="#ffffff"
+     bordercolor="#666666"
+     borderopacity="1.0"
+     inkscape:pageopacity="0.0"
+     inkscape:pageshadow="2"
+     inkscape:zoom="0.66531285"
+     inkscape:cx="197.24771"
+     inkscape:cy="2127.984"
+     inkscape:document-units="px"
+     inkscape:current-layer="layer1"
+     showgrid="false"
+     inkscape:window-width="1600"
+     inkscape:window-height="847"
+     inkscape:window-x="0"
+     inkscape:window-y="0"
+     inkscape:window-maximized="1" />
+  <metadata
+     id="metadata8259">
+    <rdf:RDF>
+      <cc:Work
+         rdf:about="">
+        <dc:format>image/svg+xml</dc:format>
+        <dc:type
+           rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
+        <dc:title />
+      </cc:Work>
+    </rdf:RDF>
+  </metadata>
+  <g
+     inkscape:label="Layer 1"
+     inkscape:groupmode="layer"
+     id="layer1"
+     transform="translate(0,1109.0551)">
+    <rect
+       style="fill:none;fill-opacity:1;stroke:#000000;stroke-width:1.10504878;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1"
+       id="rect4482"
+       width="349.68237"
+       height="67.989441"
+       x="3.8904991"
+       y="-1105.4786" />
+    <text
+       xml:space="preserve"
+       style="font-style:normal;font-weight:normal;font-size:101.88305664px;line-height:125%;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-width:6.79220438px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+       x="54.35281"
+       y="-726.10004"
+       id="text4486"
+       transform="scale(0.9318359,1.0731503)"><tspan
+         sodipodi:role="line"
+         id="tspan4484"
+         x="54.35281"
+         y="-726.10004"
+         style="stroke-width:6.79220438px">4 mm</tspan></text>
+    <rect
+       y="-1025.3638"
+       x="5.8887706"
+       height="140.12308"
+       width="359.80811"
+       id="rect4485"
+       style="fill:none;fill-opacity:1;stroke:#000000;stroke-width:1.60921538;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1" />
+    <text
+       xml:space="preserve"
+       style="font-style:normal;font-weight:normal;font-size:44.52882004px;line-height:125%;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-width:2.96858811px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+       x="104.76147"
+       y="-1117.1578"
+       id="text4488"
+       transform="scale(1.0598044,0.94357034)"><tspan
+         sodipodi:role="line"
+         id="tspan4486"
+         x="104.76147"
+         y="-1117.1578"
+         style="stroke-width:2.96858811px">2 pcs</tspan></text>
+    <text
+       xml:space="preserve"
+       style="font-style:normal;font-weight:normal;font-size:55.41439056px;line-height:125%;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-width:3.69429278px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+       x="104.17721"
+       y="-945.28064"
+       id="text4492"
+       transform="scale(1.0064168,0.99362413)"><tspan
+         sodipodi:role="line"
+         id="tspan4490"
+         x="104.17721"
+         y="-945.28064"
+         style="stroke-width:3.69429278px">1 pc</tspan></text>
+  </g>
+</svg>
