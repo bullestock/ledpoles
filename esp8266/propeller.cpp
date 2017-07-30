@@ -6,7 +6,7 @@ class Propeller : public Program
 {
 public:
     Propeller()
-        : Program(1)
+        : Program(3)
     {
     }
 
