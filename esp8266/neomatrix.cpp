@@ -91,6 +91,7 @@ void neomatrix_change_program(const char* name)
     current = p->launch();
     auto_program_switch = false;
     clear_all();
+    FastLED.setBrightness(MAX_BRIGHT);
 }
 
 void neomatrix_set_speed(int fps)
