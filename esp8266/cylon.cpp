@@ -1,7 +1,7 @@
 #include "program.hpp"
 #include "display.hpp"
 
-// 
+// cylon
 class Cylon : public Program
 {
 public:

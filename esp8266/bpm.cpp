@@ -1,6 +1,7 @@
 #include "program.hpp"
 #include "display.hpp"
 
+// beats
 class BeatsPerMinute : public Program
 {
 public:

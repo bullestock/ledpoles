@@ -1,7 +1,7 @@
 #include "program.hpp"
 #include "display.hpp"
 
-// 
+// The Matrix-style scrolling display
 class Matrix : public Program
 {
 public:

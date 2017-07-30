@@ -1,6 +1,7 @@
 #include "program.hpp"
 #include "display.hpp"
 
+// confetti sprinkle
 class Confetti : public Program
 {
 public:

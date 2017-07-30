@@ -1,7 +1,7 @@
 #include "program.hpp"
 #include "display.hpp"
 
-// a single dot traversing the strip, changing colour once it reaches the end
+// random bursts of colour
 class RandomBurst : public Program
 {
 public:

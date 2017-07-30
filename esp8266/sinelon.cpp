@@ -1,6 +1,7 @@
 #include "program.hpp"
 #include "display.hpp"
 
+// no idea, looks cool
 class SineLon : public Program
 {
 public:
