@@ -15,7 +15,7 @@ s.connect((IPADDR, PORTNUM))
 
 d = 0.2
 
-data = '5A04%04x' % socket.htons(speed)
+data = '5A04%02x' % speed
     
 s.send(data.decode('hex'))
 
