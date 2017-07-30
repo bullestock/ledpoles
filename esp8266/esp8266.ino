@@ -51,7 +51,6 @@ const int NUM_LEDS_PER_POLE = 30;
 const int NUM_POLES_PER_STRAND = 1;
 const int NUM_OF_STRANDS = 1;
 const int NUM_LEDS = NUM_OF_STRANDS*NUM_POLES_PER_STRAND*NUM_LEDS_PER_POLE;
-const int UPDATES_PER_SECOND = 10;
 // Pin for controlling strand 1
 const int PixelPin1 = D8;
 // Pin for controlling strand 2
@@ -298,7 +297,7 @@ const char* mode_names[] =
 
 AutonomousMode autonomous_mode = AutonomousMode::RAINBOW_GLITTER;
 bool auto_mode_switch = true;
-uint16_t autonomous_speed = 1000/UPDATES_PER_SECOND;
+uint16_t autonomous_speed = 10; // FPS
 
 void parse_pixel_data(uint8_t* data, int size)
 {

@@ -5,14 +5,25 @@
  * Program base
  */
 
-#ifndef _program_hpp_
-#define _program_hpp_
+#pragma once
+
+#include "framelimiter.hpp"
+
+extern uint16_t autonomous_speed;
 
 class Program
 {
 public:
-  virtual ~Program() {}
-  virtual void run() = 0;
+    Program(int scale)
+        : limiter(scale*autonomous_speed)
+    {
+    }
+    
+    virtual ~Program() {}
+    virtual bool run() = 0;
+
+protected:
+    FrameLimiter limiter;
 };
 
 class ProgramFactory
@@ -43,5 +54,3 @@ public:
 
 #define REGISTER_PROGRAM(cls) \
   static ProgramFile<cls> cls##Program(#cls)
-
-#endif // _program_hpp_
