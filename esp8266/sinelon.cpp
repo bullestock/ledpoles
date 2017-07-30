@@ -1,7 +1,7 @@
 #include "program.hpp"
 #include "display.hpp"
 
-// no idea, looks cool
+// no idea
 class SineLon : public Program
 {
 public:
@@ -27,4 +27,5 @@ private:
 
 uint8_t SineLon::starthue = 0;
 
-REGISTER_PROGRAM(SineLon);
+// disabled cuz boring
+//REGISTER_PROGRAM(SineLon);
