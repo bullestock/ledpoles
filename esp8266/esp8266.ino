@@ -50,7 +50,7 @@ WiFiUDP Udp;
 
 const int NUM_LEDS_PER_POLE = 30;
 const int NUM_POLES_PER_STRAND = 4;
-const int NUM_OF_STRANDS = 1;
+const int NUM_OF_STRANDS = 2;
 const int NUM_LEDS = NUM_OF_STRANDS*NUM_POLES_PER_STRAND*NUM_LEDS_PER_POLE;
 // Pin for controlling strand 1
 const int PixelPin1 = D8;
@@ -65,6 +65,7 @@ const int BRIGHTNESS = 100; // percent
 const int BLINK_TICK_INTERVAL = 2000;
 
 CRGB* leds = nullptr;
+CRGB* strand1 = nullptr;
 static CRGB ledsX[NUM_LEDS];
 
 uint8_t startIndex = 0;
@@ -127,7 +128,9 @@ void setup()
     
     if (NUM_OF_STRANDS > 1)
     {
-        FastLED.addLeds<WS2811, PixelPin1, GRB>(leds, 0, NUM_LEDS/2).setCorrection(TypicalLEDStrip);
+        // Strand 1 must be swapped before display, so we need a separate display buffer
+        strand1 = new CRGB[NUM_LEDS/2];
+        FastLED.addLeds<WS2811, PixelPin1, GRB>(strand1, NUM_LEDS/2).setCorrection(TypicalLEDStrip);
         FastLED.addLeds<WS2811, PixelPin2, GRB>(leds, NUM_LEDS/2, NUM_LEDS/2).setCorrection(TypicalLEDStrip);
     }
     else
@@ -342,16 +345,9 @@ void show()
 
     // Mirror strand 1
     if (NUM_OF_STRANDS > 1)
-        for (int p = 0; p < NUM_POLES_PER_STRAND/2; ++p)
-        {
-            CRGB temp[NUM_LEDS_PER_POLE];
+        for (int p = 0; p < NUM_POLES_PER_STRAND; ++p)
             for (int i = 0; i < NUM_LEDS_PER_POLE; ++i)
-                temp[i] = leds[p*NUM_LEDS_PER_POLE+i];
-            for (int i = 0; i < NUM_LEDS_PER_POLE; ++i)
-                leds[p*NUM_LEDS_PER_POLE+i] = leds[(NUM_POLES_PER_STRAND-1-p)*NUM_LEDS_PER_POLE+i];
-            for (int i = 0; i < NUM_LEDS_PER_POLE; ++i)
-                leds[(NUM_POLES_PER_STRAND-1-p)*NUM_LEDS_PER_POLE+i] = temp[i];
-        }
+                strand1[p*NUM_LEDS_PER_POLE+i] = leds[(NUM_POLES_PER_STRAND-1-p)*NUM_LEDS_PER_POLE+i];
     
     FastLED.show();
 }
