@@ -31,6 +31,8 @@
 #include <ESP8266WiFi.h>
 #include <ESP8266mDNS.h>
 
+#include "neomatrix.hpp"
+
 const char* version = "0.1.0";
 
 const char* ssids[] = {
@@ -64,7 +66,7 @@ const int BLINK_TICK_INTERVAL = 2000;
 
 const uint8_t BeatsPerMinute = 62;
 
-static CRGB leds[NUM_LEDS];
+CRGB leds[NUM_LEDS];
 static CRGB ledsX[NUM_LEDS];
 // Array of temperature readings at each simulation cell
 static byte heat[NUM_LEDS];
@@ -218,9 +220,7 @@ void setup()
     clear_all();
     show();
     
-    const auto now = millis();
-    auto_last_mode_switch = now;
-    hue_millis = now;
+    neomatrix_init();
 }
 
 WiFiClient client;
@@ -446,7 +446,7 @@ void show()
     FastLED.show();
 }
 
-const static CRGB chase_colours[] = {
+const CRGB chase_colours[] = {
     CRGB::Yellow, CRGB::Green, CRGB::HotPink, CRGB::Blue, CRGB::Red, CRGB::White
 };
 
@@ -464,6 +464,8 @@ void addGlitter(fract8 chanceOfGlitter)
 
 void runAutonomous()
 {
+    neomatrix_run();
+#if 0
     if (autonomous_mode == AutonomousMode::OFF)
         return;
     const auto now = millis();
@@ -734,6 +736,7 @@ void runAutonomous()
         hue_millis = now;
         ++starthue;
     }
+#endif
 }
 
 unsigned long blink_tick = 0;
