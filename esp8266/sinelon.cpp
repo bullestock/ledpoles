@@ -5,7 +5,7 @@ class SineLon : public Program
 {
 public:
     SineLon()
-        : Program(1)
+        : Program(2)
     {
         ++starthue;
     }
