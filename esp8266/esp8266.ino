@@ -66,8 +66,6 @@ const int BLINK_TICK_INTERVAL = 2000;
 CRGB* leds = nullptr;
 static CRGB ledsX[NUM_LEDS];
 
-CRGBPalette16 currentPalette;
-TBlendType    currentBlending;
 uint8_t startIndex = 0;
 unsigned long auto_last_mode_switch = 0;
 unsigned long hue_millis = 0;
@@ -120,7 +118,6 @@ void radiation();
 void color_loop_vardelay();
 void sin_bright_wave();
 void random_color_pop();
-void ems_lightsSTROBE();
 void rgb_propeller();
 void kitt();
 void matrix();
@@ -232,7 +229,6 @@ enum class AutonomousMode
     OFF = -1,
     CYCLE,
     FIRST = CYCLE,
-    GROWING_BARS,
     CHASE,
     PERIODIC_PALETTE,
     RAINBOW,
@@ -264,7 +260,6 @@ const char* mode_names[] =
 {
     "", // off
     "Cycle",
-    "Growing bars",
     "Chase",
     "Periodic palette",
     "Rainbow",
@@ -398,12 +393,6 @@ int current_loop = 0;
 bool growing = true;
 uint8_t starthue = 0;
 
-void ChangePalettePeriodically();
-void FillLEDsFromPaletteColors(uint8_t colorIndex);
-void SetupBlackAndWhiteStripedPalette();
-void SetupPurpleAndGreenPalette();
-void SetupTotallyRandomPalette();
-
 void clear_all()
 {
     memset(leds, 0, effective_leds * 3);
@@ -491,121 +480,12 @@ void runAutonomous()
 
     switch (autonomous_mode)
     {
-    case AutonomousMode::CYCLE:        // one at a time
-        if (current_loop >= 3)
-            current_loop = 0;
-        if (current_led >= effective_leds)
-        {
-            current_led = 0;
-            ++current_loop;
-        }
-        clear_all();
-        switch (current_loop)
-        { 
-        case 0: leds[current_led].r = 255; break;
-        case 1: leds[current_led].g = 255; break;
-        case 2: leds[current_led].b = 255; break;
-        }
-        ++current_led;
-        break;
-
-    case AutonomousMode::GROWING_BARS:
-        // growing/receeding bars
-        if (current_led >= effective_leds)
-        {
-            current_led = 0;
-            ++current_loop;
-        }
-        if (growing)
-        {
-            if (current_loop >= 3)
-            {
-                current_loop = 0;
-                growing = false;
-                break;
-            }
-            switch (current_loop)
-            { 
-            case 0: leds[current_led].r = 255; break;
-            case 1: leds[current_led].g = 255; break;
-            case 2: leds[current_led].b = 255; break;
-            }
-        }
-        else
-        {
-            if (current_loop >= 3)
-            {
-                current_loop = 0;
-                growing = true;
-                break;
-            }
-            switch (current_loop)
-            { 
-            case 0: leds[effective_leds-1-current_led].r = 0; break;
-            case 1: leds[effective_leds-1-current_led].g = 0; break;
-            case 2: leds[effective_leds-1-current_led].b = 0; break;
-            }
-        }
-        ++current_led;
-        break;
-
-#if 0
-    case AutonomousMode::BOUNCE:
-        for (size_t c = 0; c < sizeof(chase_colours)/sizeof(chase_colours[0]); ++c)
-        {
-            memset(leds, 0, effective_leds * 3);
-            for (int i = 0; i < effective_leds; ++i)
-            {
-                if (i)
-                    leds[i-1] = CRGB::Black;
-                leds[i] = chase_colours[c];
-                show();
-                delay(50);
-            }
-            leds[effective_leds-1] = CRGB::Black;
-            show();
-            delay(50);
-            for (int i = 0; i < effective_leds; ++i)
-            {
-                if (i)
-                    leds[effective_leds-i] = CRGB::Black;
-                leds[effective_leds-1-i] = chase_colours[c];
-                show();
-                delay(50);
-            }
-            leds[effective_leds-1] = CRGB::Black;
-        }
-        break;
-    
-    case AutonomousMode::CHASE_MULTI:
-        memset(leds, 0, effective_leds * 3);
-        for (size_t c = 0; c < sizeof(chase_colours)/sizeof(chase_colours[0]); ++c)
-        {
-            const int N = 4;
-            for (int j = 0; j < N; ++j)
-            {
-                memset(leds, 0, effective_leds * 3);
-                for (int i = 0; i < effective_leds; ++i)
-                    if (((i+j) % N) == 0)
-                        leds[i] = chase_colours[c];
-                show();
-                delay(100);
-            }
-            leds[effective_leds-1] = CRGB::Black;
-        }
-        break;
-#endif
-        
     case AutonomousMode::PERIODIC_PALETTE:
         ChangePalettePeriodically();
     
         startIndex = startIndex + 1; /* motion speed */
     
         FillLEDsFromPaletteColors(startIndex);
-        break;
-
-    case AutonomousMode::RAINBOW:
-        fill_rainbow(leds, effective_leds, --starthue, 20);
         break;
 
     case AutonomousMode::RAINBOW_GLITTER:
@@ -651,10 +531,6 @@ void runAutonomous()
         
     case AutonomousMode::RANDOM_POP:
         random_color_pop();
-        break;
-        
-    case AutonomousMode::STROBE:
-        ems_lightsSTROBE();
         break;
         
     case AutonomousMode::PROPELLER:
@@ -708,105 +584,6 @@ void loop()
         digitalWrite(StatusPin, status_led_on);
     }
 }
-
-void FillLEDsFromPaletteColors(uint8_t colorIndex)
-{
-  uint8_t brightness = 255;
-    
-  for (int i = 0; i < effective_leds; i++) {
-    leds[i] = ColorFromPalette(currentPalette, colorIndex, brightness, currentBlending);
-    colorIndex += 3;
-  }
-}
-
-void ChangePalettePeriodically()
-{
-    // Change palette every 8 seconds
-    const int secondHand = millis()/8000;
-    static int lastSecond = 999;
-    
-    if (lastSecond != secondHand)
-    {
-        lastSecond = secondHand;
-        const int pal = random(11);
-        switch (pal)
-        {
-        case 0:  currentPalette = RainbowColors_p;         currentBlending = LINEARBLEND; break;
-        case 1:  currentPalette = RainbowStripeColors_p;   currentBlending = NOBLEND;  break;
-        case 2:  currentPalette = RainbowStripeColors_p;   currentBlending = LINEARBLEND; break;
-        case 3:  SetupPurpleAndGreenPalette();             currentBlending = LINEARBLEND; break;
-        case 4:  SetupTotallyRandomPalette();              currentBlending = LINEARBLEND; break;
-        case 5:  SetupBlackAndWhiteStripedPalette();       currentBlending = NOBLEND; break;
-        case 6:  SetupBlackAndWhiteStripedPalette();       currentBlending = LINEARBLEND; break;
-        case 7:  currentPalette = CloudColors_p;           currentBlending = LINEARBLEND; break;
-        case 8:  currentPalette = PartyColors_p;           currentBlending = LINEARBLEND; break;
-        case 9:  currentPalette = myRedWhiteBluePalette_p; currentBlending = NOBLEND;  break;
-        case 10: currentPalette = myRedWhiteBluePalette_p; currentBlending = LINEARBLEND; break;
-        }
-    }
-}
-
-// This function fills the palette with totally random colors.
-void SetupTotallyRandomPalette()
-{
-    for (int i = 0; i < 16; i++)
-        currentPalette[i] = CHSV(random8(), 255, random8());
-}
-
-// This function sets up a palette of black and white stripes,
-// using code.  Since the palette is effectively an array of
-// sixteen CRGB colors, the various fill_* functions can be used
-// to set them up.
-void SetupBlackAndWhiteStripedPalette()
-{
-    // 'black out' all 16 palette entries...
-    fill_solid(currentPalette, 16, CRGB::Black);
-    // and set every fourth one to white.
-    currentPalette[0] = CRGB::White;
-    currentPalette[4] = CRGB::White;
-    currentPalette[8] = CRGB::White;
-    currentPalette[12] = CRGB::White;
-}
-
-// This function sets up a palette of purple and green stripes.
-void SetupPurpleAndGreenPalette()
-{
-    CRGB purple = CHSV(HUE_PURPLE, 255, 255);
-    CRGB green  = CHSV(HUE_GREEN, 255, 255);
-    CRGB black  = CRGB::Black;
-    
-    currentPalette = CRGBPalette16(green,  green,  black,  black,
-                                   purple, purple, black,  black,
-                                   green,  green,  black,  black,
-                                   purple, purple, black,  black);
-}
-
-
-// This example shows how to set up a static color palette
-// which is stored in PROGMEM (flash), which is almost always more
-// plentiful than RAM.  A static PROGMEM palette like this
-// takes up 64 bytes of flash.
-const TProgmemPalette16 myRedWhiteBluePalette_p PROGMEM =
-{
-    CRGB::Red,
-    CRGB::Gray, // 'white' is too bright compared to red and blue
-    CRGB::Blue,
-    CRGB::Black,
-    
-    CRGB::Red,
-    CRGB::Gray,
-    CRGB::Blue,
-    CRGB::Black,
-    
-    CRGB::Red,
-    CRGB::Red,
-    CRGB::Gray,
-    CRGB::Gray,
-    CRGB::Blue,
-    CRGB::Blue,
-    CRGB::Black,
-    CRGB::Black
-};
 
 //----------
 
@@ -903,21 +680,7 @@ void random_red() {                       //QUICK 'N DIRTY RANDOMIZE TO GET CELL
     }
 }
 
-void radiation() {                   //-m16-SORT OF RADIATION SYMBOLISH- 
-    int N3  = int(effective_leds/3);
-    int N6  = int(effective_leds/6);  
-    int N12 = int(effective_leds/12);  
-    for (int i = 0; i < N6; i++) {     //-HACKY, I KNOW...
-        tcount = tcount + .02;
-        if (tcount > 3.14) {tcount = 0.0;}
-        ibright = int(sin(tcount)*255);    
-        int j0 = (i + effective_leds - N12) % effective_leds;
-        int j1 = (j0+N3) % effective_leds;
-        int j2 = (j1+N3) % effective_leds;    
-        leds[j0] = CHSV(thishue, thissat, ibright);
-        leds[j1] = CHSV(thishue, thissat, ibright);
-        leds[j2] = CHSV(thishue, thissat, ibright);    
-    }    
+void radiation() {                   //-m16-
 }
 
 void color_loop_vardelay() {                    //-m17-COLOR LOOP (SINGLE LED) w/ VARIABLE DELAY
@@ -948,27 +711,6 @@ void random_color_pop() {                         //-m25-RANDOM COLOR POP
     ihue = random(0, 255);
     one_color_all(0, 0, 0);
     leds[idex] = CHSV(ihue, thissat, 255);
-}
-
-void ems_lightsSTROBE() {                  //-m26-EMERGENCY LIGHTS (STROBE LEFT/RIGHT)
-    int thishue = 0;
-    int thathue = (thishue + 160) % 255;
-    int thisdelay = 25;
-    const int TOP_INDEX = int(effective_leds/2);
-    for (int x = 0 ; x < 5; x++) {
-        for (int i = 0 ; i < TOP_INDEX; i++)
-            leds[i] = CHSV(thishue, thissat, 255);
-        show(); delay(thisdelay); 
-        one_color_all(0, 0, 0);
-        show(); delay(thisdelay);
-    }
-    for (int x = 0 ; x < 5; x++) {
-        for (int i = TOP_INDEX ; i < effective_leds; i++)
-            leds[i] = CHSV(thathue, thissat, 255);
-        show(); delay(thisdelay);
-        one_color_all(0, 0, 0);
-        show(); delay(thisdelay);
-    }
 }
 
 void rgb_propeller()

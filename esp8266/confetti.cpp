@@ -5,7 +5,7 @@ class Confetti : public Program
 {
 public:
     Confetti()
-        : Program(1)
+        : Program(2)
     {
         ++starthue;
     }

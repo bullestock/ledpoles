@@ -8,6 +8,7 @@
 #include <FastLED.h>
 
 #include "common.hpp"
+#include "display.hpp"
 #include "program.hpp"
 
 // static pixel* frame;
@@ -18,7 +19,6 @@ uint32_t startTime = 0;
 ProgramFactory* currentFactory = nullptr;
 
 extern void show();
-extern void clear_all();
 
 void neomatrix_init()
 {

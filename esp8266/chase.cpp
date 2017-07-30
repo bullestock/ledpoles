@@ -9,7 +9,7 @@ public:
     int idx = 0;
     bool first = true;
     Chase()
-        : Program(1)
+        : Program(2)
     {
     }
 

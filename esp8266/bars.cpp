@@ -2,14 +2,14 @@
 #include "display.hpp"
 #include "chasecolours.hpp"
 
-// a single dot traversing the strip, changing colour once it reaches the end
-class Bounce : public Program
+// growing/receding bars
+class Bars : public Program
 {
 public:
     int idx = 0;
     bool first = true;
     bool forwards = true;
-    Bounce()
+    Bars()
         : Program(3)
     {
     }
@@ -17,6 +17,8 @@ public:
     virtual bool run()
     {
         if (limiter.skip()) return false;
+
+        clear_all();
         if (idx >= effective_leds)
         {
             idx = effective_leds-1;
@@ -27,15 +29,13 @@ public:
             idx = 0;
             forwards = true;
         }
-        const auto last_idx = forwards ? (idx ? idx-1 : effective_leds-1) :
-           (idx < effective_leds-1) ? idx+1 : 0;
-        leds[last_idx] = CRGB::Black;
         if (!idx && !first)
         {
             // done all LEDs
             ChaseColours::next();
         }
-        leds[idx] = ChaseColours::get();
+        for (int i = 0; i <= idx; ++i)
+            leds[i] = ChaseColours::get();
         first = false;
         if (forwards)
             ++idx;
@@ -45,4 +45,4 @@ public:
     }
 };
 
-REGISTER_PROGRAM(Bounce);
+REGISTER_PROGRAM(Bars);

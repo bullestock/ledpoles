@@ -5,19 +5,20 @@
  * Frame limiter
  */
 
-#ifndef _framelimiter_hpp_
-#define _framelimiter_hpp_
+#pragma once
 
 #include <stdint.h>
 
 class FrameLimiter
 {
 public:
-  FrameLimiter(int fps);
-  bool skip();
+    FrameLimiter(int fps);
+    bool skip();
+
+    void setFps(int fps);
+    
 private:
-  uint32_t cyclesPerFrame;
-  uint32_t nextFrame;
+    uint32_t cyclesPerFrame;
+    uint32_t nextFrame;
 };
 
-#endif // _framelimiter_hpp_

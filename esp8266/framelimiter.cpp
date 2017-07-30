@@ -10,8 +10,13 @@
 
 FrameLimiter::FrameLimiter(int fps)
 {
-  cyclesPerFrame = HZ / fps;
-  nextFrame = getCycleCount();
+    cyclesPerFrame = HZ / fps;
+    nextFrame = getCycleCount();
+}
+
+void FrameLimiter::setFps(int fps)
+{
+    cyclesPerFrame = HZ / fps;
 }
 
 bool FrameLimiter::skip()
