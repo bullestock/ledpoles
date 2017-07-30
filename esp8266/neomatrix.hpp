@@ -5,10 +5,9 @@
  * Main display code
  */
 
-#ifndef _neomatrix_h_
-#define _neomatrix_h_
+#pragma once
 
 void neomatrix_init();
 void neomatrix_run();
-
-#endif // _neomatrix_h_
+void neomatrix_change_program(const char* name);
+void neomatrix_set_speed(int fps);

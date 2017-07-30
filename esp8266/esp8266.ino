@@ -32,6 +32,7 @@
 #include <ESP8266mDNS.h>
 
 #include "neomatrix.hpp"
+#include "stripmode.hpp"
 
 const char* version = "0.1.0";
 
@@ -73,21 +74,14 @@ unsigned long hue_millis = 0;
 extern CRGBPalette16 myRedWhiteBluePalette;
 extern const TProgmemPalette16 myRedWhiteBluePalette_p PROGMEM;
 
-enum class StripMode
-{
-    // Use the whole strip for the animation
-    WholeStrip,
-    First = WholeStrip,
-    // Use one pole for the animation, and copy to remaining poles
-    OnePoleCopy,
-    // Use one pole for the animation, and shift-copy to remaining poles
-    OnePoleShiftCopy,
-    Last
-};
-
-StripMode strip_mode = StripMode::WholeStrip;
+static StripMode strip_mode = StripMode::WholeStrip;
 
 int effective_leds = 0;
+
+StripMode get_strip_mode()
+{
+    return strip_mode;
+}
 
 void set_strip_mode(StripMode mode)
 {
@@ -149,7 +143,6 @@ void setup()
     Serial.print("Poles per strand: ");
     Serial.println(NUM_POLES_PER_STRAND);
 
-#if 0
     // Connect to WiFi network
     WiFi.mode(WIFI_STA);
     int index = 0;
@@ -212,7 +205,6 @@ void setup()
     }
 
     Udp.begin(7890);
-#endif
     
     clear_all();
     show();
@@ -256,49 +248,20 @@ enum class AutonomousMode
     LAST
 };
 
-const char* mode_names[] =
-{
-    "", // off
-    "Cycle",
-    "Chase",
-    "Periodic palette",
-    "Rainbow",
-    "Cylon",
-    "Bounce",
-    "Confetti",
-    "Sinelon",
-    "Bpm",
-    "Juggle",
-    "Fire",
-    "Random burst",
-    "Flicker",
-    "Pulse",
-    "Radiation",
-    "Rainbow glitter",
-    "Color loop",
-    "Sin bright",
-    "Random pop",
-    "Pulse rev",
-    "Strobe",
-    "Propeller",
-    "Kitt",
-    "Chase multi",
-    "Matrix"
-};
-
 AutonomousMode autonomous_mode = AutonomousMode::RAINBOW_GLITTER;
 bool auto_mode_switch = true;
-uint16_t autonomous_speed = 10; // FPS
+
+extern bool run_autonomously;
 
 void parse_pixel_data(uint8_t* data, int size)
 {
     if (size < sizeof(int16_t))
         return;
-    if (autonomous_mode != AutonomousMode::OFF)
+
+    if (run_autonomously)
     {
-        autonomous_mode = AutonomousMode::OFF;
+        run_autonomously = false;
         Serial.println("Switch to non-autonomous mode");
-        delay(10);
     }
     
     auto cmdptr = (int16_t*) data;
@@ -316,13 +279,10 @@ void parse_mode(uint8_t* data, int size)
 {
     if (size < sizeof(uint8_t))
         return;
-    auto cmdptr = (uint8_t*) data;
-    if (*cmdptr >= static_cast<uint8_t>(AutonomousMode::LAST))
-        return;
-    auto_mode_switch = false;
-    autonomous_mode = static_cast<AutonomousMode>(*cmdptr);
-    set_strip_mode(strip_mode);
-    Serial.printf("Set mode %d\r\n", autonomous_mode);
+    data[size] = 0;
+    auto mode = (const char*) data;
+    Serial.printf("Set mode %s\r\n", mode);
+    neomatrix_change_program(mode);
 }
 
 void parse_strip_mode(uint8_t* data, int size)
@@ -338,11 +298,13 @@ void parse_speed(uint8_t* data, int size)
 {
     if (size < sizeof(uint8_t))
         return;
-    auto cmdptr = (uint16_t*) data;
-    autonomous_speed = *cmdptr;
-    if (autonomous_speed < 10)
-        autonomous_speed = 10;
+    auto autonomous_speed = *data;
+    if (autonomous_speed > 50)
+        autonomous_speed = 50;
+    if (autonomous_speed <= 0)
+        autonomous_speed = 1;
     Serial.printf("Set speed %d\r\n", autonomous_speed);
+    neomatrix_set_speed(autonomous_speed);
 }
 
 
@@ -367,7 +329,7 @@ void clientEventUdp()
             break;
 
         case 1112:
-            // Set autonomous mode (1 byte)
+            // Set autonomous mode (string)
             parse_mode(rcv + sizeof(int16_t), len - sizeof(int16_t));
             break;
             
@@ -446,53 +408,13 @@ void addGlitter(fract8 chanceOfGlitter)
         leds[random16(effective_leds)] += CRGB::White;
 }
 
+
 void runAutonomous()
 {
     neomatrix_run();
 #if 0
-    if (autonomous_mode == AutonomousMode::OFF)
-        return;
-    const auto now = millis();
-    if (auto_mode_switch && (now - auto_last_mode_switch > MODE_DURATION))
-    {
-        for (int j = 0; j < 10; ++j)
-        {
-            for (int i = 0; i < effective_leds; i++)
-                leds[i].nscale8(200);
-            show();
-            delay(100);
-        }
-        auto_last_mode_switch = now;
-        autonomous_mode = static_cast<AutonomousMode>(static_cast<int>(autonomous_mode)+1);
-        if (autonomous_mode >= AutonomousMode::LAST)
-        {
-            autonomous_mode = AutonomousMode::FIRST;
-            auto new_strip_mode = static_cast<StripMode>(static_cast<int>(strip_mode)+1);
-            if (new_strip_mode >= StripMode::Last)
-                new_strip_mode = StripMode::First;
-            set_strip_mode(new_strip_mode);
-        }
-        Serial.print("Autonomous mode ");
-        Serial.print(static_cast<int>(autonomous_mode));
-        Serial.print(": ");
-        Serial.println(mode_names[static_cast<int>(autonomous_mode)]);
-    }
-
     switch (autonomous_mode)
     {
-    case AutonomousMode::PERIODIC_PALETTE:
-        ChangePalettePeriodically();
-    
-        startIndex = startIndex + 1; /* motion speed */
-    
-        FillLEDsFromPaletteColors(startIndex);
-        break;
-
-    case AutonomousMode::RAINBOW_GLITTER:
-        fill_rainbow(leds, effective_leds, --starthue, 20);
-        addGlitter(80);
-        break;
-
     case AutonomousMode::CYLON:
         if (current_led >= effective_leds)
             current_led = 0;
@@ -501,40 +423,8 @@ void runAutonomous()
         ++current_led;
         break;
 
-    case AutonomousMode::RANDOM_BURST:
-        random_burst();
-        break;
-        
-    case AutonomousMode::FLICKER:
-        flicker();
-        break;
-        
-    case AutonomousMode::PULSE:
-        pulse_one_color_all();
-        break;
-        
-    case AutonomousMode::PULSE_REV:
-        pulse_one_color_all_rev();
-        break;
-        
-    case AutonomousMode::RADIATION:
-        radiation();
-        break;
-        
-    case AutonomousMode::COLOR_LOOP:
-        color_loop_vardelay();
-        break;
-        
-    case AutonomousMode::SIN_BRIGHT:
-        sin_bright_wave();
-        break;
-        
     case AutonomousMode::RANDOM_POP:
         random_color_pop();
-        break;
-        
-    case AutonomousMode::PROPELLER:
-        rgb_propeller();
         break;
         
     case AutonomousMode::KITT:
@@ -551,7 +441,6 @@ void runAutonomous()
     }
 
     show();
-    delay(autonomous_speed);
 
     if (now - hue_millis >= 20)
     {

@@ -10,9 +10,7 @@
 #include "common.hpp"
 #include "display.hpp"
 #include "program.hpp"
-
-// static pixel* frame;
-// pixel* pixels;
+#include "stripmode.hpp"
 
 Program* current = nullptr;
 uint32_t startTime = 0;
@@ -33,6 +31,9 @@ void neomatrix_init()
 #define FADEIN FADETIME
 #define FADEOUT (RUNTIME-FADETIME)
 #define MAX_BRIGHT 255
+
+bool run_autonomously = true;
+bool auto_program_switch = true;
 
 void program_loop()
 {
@@ -58,7 +59,13 @@ void program_loop()
         delete current;
         currentFactory = currentFactory->next;
         if (!currentFactory)
+        {
             currentFactory = ProgramFactory::first;
+            auto new_strip_mode = static_cast<StripMode>(static_cast<int>(get_strip_mode())+1);
+            if (new_strip_mode >= StripMode::Last)
+                new_strip_mode = StripMode::First;
+            set_strip_mode(new_strip_mode);
+        }
         current = currentFactory->launch();
         Serial.printf("Launched %s\n", currentFactory->name);
         startTime = now;
@@ -67,7 +74,26 @@ void program_loop()
 
 void neomatrix_run()
 {
-    program_loop();
-    if (current->run())
+    if (auto_program_switch)
+        program_loop();
+    if (run_autonomously && current->run())
         show();
+}
+
+void neomatrix_change_program(const char* name)
+{
+    auto p = ProgramFactory::get(name);
+    if (!p)
+    {
+        Serial.println("Not found");
+        return;
+    }
+    current = p->launch();
+    auto_program_switch = false;
+}
+
+void neomatrix_set_speed(int fps)
+{
+    if (current)
+        current->limiter.setFps(fps);
 }

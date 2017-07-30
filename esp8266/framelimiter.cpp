@@ -8,28 +8,32 @@
 #include "framelimiter.hpp"
 #include "common.hpp"
 
-FrameLimiter::FrameLimiter(int fps)
+FrameLimiter::FrameLimiter(int s)
+    : scale(s)
 {
-    cyclesPerFrame = HZ / fps;
     nextFrame = getCycleCount();
+    setFps(fps);
 }
 
-void FrameLimiter::setFps(int fps)
+void FrameLimiter::setFps(int f)
 {
-    cyclesPerFrame = HZ / fps;
+    fps = f;
+    cyclesPerFrame = HZ / (scale*fps);
 }
 
 bool FrameLimiter::skip()
 {
   uint32_t now = getCycleCount();
   uint32_t untilNextFrame = nextFrame - now;
-  if (untilNextFrame < cyclesPerFrame) {
-    return true;
-  }
+  if (untilNextFrame < cyclesPerFrame)
+      return true;
+
   nextFrame += cyclesPerFrame;
   untilNextFrame = nextFrame - now;
-  if (untilNextFrame >= cyclesPerFrame) {
-    nextFrame = now + cyclesPerFrame;
-  }
+  if (untilNextFrame >= cyclesPerFrame)
+      nextFrame = now + cyclesPerFrame;
+
   return false;
 }
+
+int FrameLimiter::fps = 10;

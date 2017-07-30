@@ -15,30 +15,29 @@ class Program
 {
 public:
     Program(int scale)
-        : limiter(scale*autonomous_speed)
+        : limiter(scale)
     {
     }
     
     virtual ~Program() {}
     virtual bool run() = 0;
 
-protected:
     FrameLimiter limiter;
 };
 
 class ProgramFactory
 {
 public:
-  ProgramFactory(const char* name) : name(name)
-  {
-    next = first;
-    first = this;
-  }
-  virtual Program* launch() = 0;
-  static ProgramFactory* first;
-  static ProgramFactory* get(const char* name);
-  ProgramFactory* next;
-  const char* name;
+    ProgramFactory(const char* name) : name(name)
+    {
+        next = first;
+        first = this;
+    }
+    virtual Program* launch() = 0;
+    static ProgramFactory* first;
+    static ProgramFactory* get(const char* name);
+    ProgramFactory* next;
+    const char* name;
 };
 
 template<typename T>
