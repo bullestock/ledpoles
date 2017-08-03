@@ -49,7 +49,7 @@ const char myDNSName[] = "displaydingo1";
 WiFiUDP Udp;
 
 const int NUM_LEDS_PER_POLE = 30;
-const int NUM_POLES_PER_STRAND = 4;
+const int NUM_POLES_PER_STRAND = 12;
 const int NUM_OF_STRANDS = 2;
 const int NUM_LEDS = NUM_OF_STRANDS*NUM_POLES_PER_STRAND*NUM_LEDS_PER_POLE;
 // Pin for controlling strand 1
@@ -64,20 +64,16 @@ const int BRIGHTNESS = 100; // percent
 // Blink duration when connected
 const int BLINK_TICK_INTERVAL = 2000;
 
+// Main animation buffer
 CRGB* leds = nullptr;
+
+// Buffer for swapping strand1 before showing
 CRGB* strand1 = nullptr;
-static CRGB ledsX[NUM_LEDS];
 
-uint8_t startIndex = 0;
-unsigned long auto_last_mode_switch = 0;
-unsigned long hue_millis = 0;
-
-extern CRGBPalette16 myRedWhiteBluePalette;
-extern const TProgmemPalette16 myRedWhiteBluePalette_p PROGMEM;
+// The number of LEDs available to the animation algorithms
+int effective_leds = 0;
 
 static StripMode strip_mode = StripMode::WholeStrip;
-
-int effective_leds = 0;
 
 StripMode get_strip_mode()
 {
@@ -192,6 +188,7 @@ void setup()
         Serial.println("Error setting up mDNS responder!");
     else
     {
+        mdns.enableArduino(8266);
         Serial.println("mDNS responder started");
         Serial.printf("My name is [%s]\r\n", myDNSName);
     }
