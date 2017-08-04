@@ -7,7 +7,7 @@ if len(sys.argv) != 2:
 speed = int(sys.argv[1])
 print("Setting speed %d" % speed)
 # addressing information of target
-IPADDR = '192.168.0.58'
+IPADDR = 'displaydingo1.local'
 PORTNUM = 7890
 
 s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, 0)

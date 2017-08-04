@@ -1,7 +1,7 @@
 import socket, time
 
 # addressing information of target
-IPADDR = '192.168.0.58'
+IPADDR = 'displaydingo1.local'
 PORTNUM = 7890
 
 # initialize a socket, think of it as a cable

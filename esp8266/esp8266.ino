@@ -184,7 +184,7 @@ void setup()
     Serial.println(WiFi.localIP());
 
     // Set up mDNS responder:
-    if (!mdns.begin(myDNSName, WiFi.localIP()))
+    if (!mdns.begin(myDNSName))
         Serial.println("Error setting up mDNS responder!");
     else
     {

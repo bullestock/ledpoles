@@ -7,7 +7,7 @@ if len(sys.argv) != 2:
 mode = sys.argv[1]
 print("Setting mode %s" % mode)
 # addressing information of target
-IPADDR = '192.168.0.58'
+IPADDR = 'displaydingo1.local'
 PORTNUM = 7890
 
 s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, 0)
