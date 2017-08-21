@@ -1,17 +1,22 @@
 import socket, time, sys
 
-if len(sys.argv) != 2:
-    print("Usage: setstripmode <mode>")
+if len(sys.argv) < 2:
+    print("Usage: setstripmode [<address>] <mode>")
     sys.exit()
 
-mode = int(sys.argv[1])
-print("Setting strip mode %d" % mode)
-# addressing information of target
-IPADDR = 'displaydingo1.local'
+address = 'displaydingo1.local'
+mode = sys.argv[1]
+if len(sys.argv) > 2:
+    address = sys.argv[1]
+    mode = sys.argv[2]
+
+mode = int(mode)
+print("Setting strip mode %d for %s" % (mode, address))
+
 PORTNUM = 7890
 
 s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, 0)
-s.connect((IPADDR, PORTNUM))
+s.connect((address, PORTNUM))
 
 d = 0.2
 
