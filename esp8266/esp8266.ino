@@ -44,7 +44,7 @@ const char* ssids[] = {
 const char* password = "";
 
 MDNSResponder mdns;
-const char myDNSName[] = "displaydingo1";
+const char myDNSName[] = "displaydingo2";
 
 WiFiUDP Udp;
 
@@ -262,6 +262,28 @@ void parse_speed(uint8_t* data, int size)
     neomatrix_set_speed(autonomous_speed);
 }
 
+void parse_brightness(uint8_t* data, int size)
+{
+    if (size < sizeof(uint8_t))
+        return;
+    auto brightness = *data;
+    if (brightness < 10)
+        brightness = 10;
+    Serial.printf("Set brightness %d\r\n", brightness);
+    neomatrix_set_brightness(brightness);
+}
+
+void parse_nightmode(uint8_t* data, int size)
+{
+    if (size < sizeof(uint8_t))
+        return;
+    auto nightmode = *data;
+    if (nightmode > 1)
+        nightmode = 1;
+    Serial.printf("Set night mode %d\r\n", nightmode);
+    neomatrix_set_nightmode(nightmode);
+}
+
 void clientEventUdp()
 {
     int32_t packetSize = 0;
@@ -296,6 +318,16 @@ void clientEventUdp()
         case 1115:
             // Start autonomous mode switch (no arguments)
             neomatrix_start_autorun();
+            break;
+
+        case 1116:
+            // Set brightness (1 byte)
+            parse_brightness(rcv + sizeof(int16_t), len - sizeof(int16_t));
+            break;
+
+        case 1117:
+            // Night mode (1 byte)
+            parse_nightmode(rcv + sizeof(int16_t), len - sizeof(int16_t));
             break;
             
         default:

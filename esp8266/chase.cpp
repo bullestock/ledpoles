@@ -13,6 +13,11 @@ public:
     {
     }
 
+    bool allow_night_mode() override
+    {
+        return true;
+    }
+
     virtual bool run()
     {
         if (limiter.skip()) return false;

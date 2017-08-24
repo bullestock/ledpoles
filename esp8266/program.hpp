@@ -20,8 +20,14 @@ public:
     }
     
     virtual ~Program() {}
+
     virtual bool run() = 0;
 
+    virtual bool allow_night_mode()
+    {
+        return false;
+    }
+    
     FrameLimiter limiter;
 };
 
@@ -33,7 +39,9 @@ public:
         next = first;
         first = this;
     }
+
     virtual Program* launch() = 0;
+
     static ProgramFactory* first;
     static ProgramFactory* get(const char* name);
     ProgramFactory* next;
