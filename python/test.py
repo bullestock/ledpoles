@@ -1,7 +1,9 @@
-import socket, time
+import socket, time, sys
 
-# addressing information of target
-IPADDR = 'displaydingo1.local'
+address = 'displaydingo1.local'
+if len(sys.argv) > 1:
+    address = sys.argv[1]
+
 PORTNUM = 7890
 
 # initialize a socket, think of it as a cable
@@ -9,12 +11,13 @@ PORTNUM = 7890
 s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, 0)
  
 # connect the socket, think of it as connecting the cable to the address location
-s.connect((IPADDR, PORTNUM))
+s.connect((address, PORTNUM))
 
 d = 0.2
 
 while True:
     data = '5704'
+    data = data + '0000' # offset
     for i in range(0, 4*30/4):
         data = data + '00000000ffff000000ff0000' # black, blue, black, red
     
