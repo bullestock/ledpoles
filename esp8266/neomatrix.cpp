@@ -5,12 +5,13 @@
  * Main display code
  */
 
-#include <FastLED.h>
-
 #include "common.hpp"
+#include "defs.h"
 #include "display.hpp"
 #include "program.hpp"
 #include "stripmode.hpp"
+#include "ws2812_i2s.hpp"
+#include <FastLED.h>
 
 Program* current = nullptr;
 uint32_t startTime = 0;
@@ -20,6 +21,7 @@ extern void show();
 
 void neomatrix_init()
 {
+    ws2812_init();
     currentFactory = ProgramFactory::first;
     current = currentFactory->launch();
     Serial.printf("Launched %s\n", currentFactory->name);
@@ -43,22 +45,22 @@ void program_loop()
     uint32_t prgTime = now - startTime;
     if (prgTime < FADEIN)
     {
-        FastLED.setBrightness((prgTime * max_brightness) / FADEIN);
+        ws2812_brightness((prgTime * max_brightness) / FADEIN);
     }
     else if (prgTime < FADEOUT)
     {
         auto brightness = max_brightness;
         if (night_mode)
             brightness = min(brightness, 64);
-        FastLED.setBrightness(brightness);
+        ws2812_brightness(brightness);
     }
     else if (prgTime < RUNTIME)
     {
-        FastLED.setBrightness(((RUNTIME - prgTime) * max_brightness) / FADETIME);
+        ws2812_brightness(((RUNTIME - prgTime) * max_brightness) / FADETIME);
     }
     else
     {
-        FastLED.setBrightness(0);
+        ws2812_brightness(0);
         clear_all();
         show();
         delete current;
@@ -83,12 +85,17 @@ void program_loop()
     }
 }
 
-void neomatrix_run()
+void neomatrix_run(CRGB* pixels)
 {
     if (auto_program_switch)
         program_loop();
     if (run_autonomously && current->run())
-        show();
+        ws2812_show(pixels);
+}
+
+void neomatrix_show(CRGB* pixels)
+{
+    ws2812_show(pixels);
 }
 
 void neomatrix_change_program(const char* name)
@@ -102,7 +109,7 @@ void neomatrix_change_program(const char* name)
     current = p->launch();
     auto_program_switch = false;
     clear_all();
-    FastLED.setBrightness(max_brightness);
+    ws2812_brightness(max_brightness);
 }
 
 void neomatrix_set_speed(int fps)
@@ -114,7 +121,7 @@ void neomatrix_set_speed(int fps)
 void neomatrix_set_brightness(uint8_t brightness)
 {
     max_brightness = brightness;
-    FastLED.setBrightness(max_brightness);
+    ws2812_brightness(max_brightness);
 }
 
 void neomatrix_set_nightmode(bool nightmode)

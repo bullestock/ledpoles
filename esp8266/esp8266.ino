@@ -25,14 +25,14 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#define FASTLED_ALLOW_INTERRUPTS 0
-#include <FastLED.h>
-
 #include <ESP8266WiFi.h>
 #include <ESP8266mDNS.h>
 
 #include "neomatrix.hpp"
 #include "stripmode.hpp"
+#include "defs.h"
+#include "ws2812_i2s.hpp"
+#include <FastLED.h>
 
 const char* version = "0.1.0";
 
@@ -44,25 +44,9 @@ const char* ssids[] = {
 const char* password = "";
 
 MDNSResponder mdns;
-const char myDNSName[] = "displaydingo2";
+const char myDNSName[] = "displaydingo1";
 
 WiFiUDP Udp;
-
-const int NUM_LEDS_PER_POLE = 30;
-const int NUM_POLES_PER_STRAND = 12;
-const int NUM_OF_STRANDS = 2;
-const int NUM_LEDS = NUM_OF_STRANDS*NUM_POLES_PER_STRAND*NUM_LEDS_PER_POLE;
-// Pin for controlling strand 1
-const int PixelPin1 = D8;
-// Pin for controlling strand 2
-const int PixelPin2 = D7;
-// Pin for controlling status LED
-const int StatusPin = D6;
-
-const int BRIGHTNESS = 100; // percent
-
-// Blink duration when connected
-const int BLINK_TICK_INTERVAL = 2000;
 
 // Main animation buffer
 CRGB* leds = nullptr;
@@ -115,13 +99,11 @@ void setup()
     {
         // Strand 1 must be swapped before display, so we need a separate display buffer
         strand1 = new CRGB[NUM_LEDS/2];
-        FastLED.addLeds<WS2811, PixelPin1, GRB>(strand1, NUM_LEDS/2).setCorrection(TypicalLEDStrip);
-        FastLED.addLeds<WS2811, PixelPin2, GRB>(leds, NUM_LEDS/2, NUM_LEDS/2).setCorrection(TypicalLEDStrip);
+        //!!FastLED.addLeds<WS2811, PixelPin1, GRB>(strand1, NUM_LEDS/2).setCorrection(TypicalLEDStrip);
+        //!!FastLED.addLeds<WS2811, PixelPin2, GRB>(leds, NUM_LEDS/2, NUM_LEDS/2).setCorrection(TypicalLEDStrip);
     }
-    else
-        FastLED.addLeds<WS2811, PixelPin1, GRB>(leds, NUM_LEDS).setCorrection(TypicalLEDStrip);
     
-    FastLED.setBrightness(BRIGHTNESS);
+    ws2812_brightness(BRIGHTNESS);
 
     delay(1000);
     Serial.begin(115200);
@@ -195,10 +177,9 @@ void setup()
 
     Udp.begin(7890);
     
+    neomatrix_init();
     clear_all();
     show();
-    
-    neomatrix_init();
 }
 
 WiFiClient client;
@@ -216,7 +197,7 @@ void parse_pixel_data(uint8_t* data, int size)
     {
         run_autonomously = false;
         Serial.println("Switch to non-autonomous mode");
-        FastLED.setBrightness(255);
+        ws2812_brightness(255);
     }
     
     auto cmdptr = (int16_t*) data;
@@ -368,7 +349,7 @@ void show()
             for (int i = 0; i < NUM_LEDS_PER_POLE; ++i)
                 strand1[p*NUM_LEDS_PER_POLE+i] = leds[(NUM_POLES_PER_STRAND-1-p)*NUM_LEDS_PER_POLE+i];
     
-    FastLED.show();
+    neomatrix_show(leds);
 }
 
 unsigned long blink_tick = 0;
@@ -378,7 +359,7 @@ void loop()
 {
     clientEventUdp();
 
-    neomatrix_run();
+    neomatrix_run(leds);
     
     if (dirtyshow)
     {
