@@ -8,6 +8,7 @@
 #include "common.hpp"
 #include "defs.h"
 #include "display.hpp"
+#include "neomatrix.hpp"
 #include "program.hpp"
 #include "stripmode.hpp"
 #include "ws2812_i2s.hpp"
@@ -90,11 +91,22 @@ void neomatrix_run(CRGB* pixels)
     if (auto_program_switch)
         program_loop();
     if (run_autonomously && current->run())
-        ws2812_show(pixels);
+        neomatrix_show(pixels);
+}
+
+template<typename T> void swap(T& a, T& b)
+{
+    T tmp = a;
+    a = b;
+    b = tmp;
 }
 
 void neomatrix_show(CRGB* pixels)
 {
+    // RGB -> GRB
+    for (int i = 0; i < NUM_LEDS; ++i)
+        swap(pixels[i].r, pixels[i].g);
+    
     ws2812_show(pixels);
 }
 
