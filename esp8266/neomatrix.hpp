@@ -10,6 +10,7 @@
 struct CRGB;
 
 void neomatrix_init();
+void neomatrix_start();
 void neomatrix_run(CRGB* pixels);
 void neomatrix_show(CRGB* pixels);
 void neomatrix_change_program(const char* name);

@@ -11,7 +11,3 @@ enum class StripMode
     OnePoleShiftCopy,
     Last
 };
-
-StripMode get_strip_mode();
-
-void set_strip_mode(StripMode mode);

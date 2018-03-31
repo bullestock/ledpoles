@@ -24,6 +24,10 @@ extern void show();
 void neomatrix_init()
 {
     ws2812_init();
+}
+
+void neomatrix_start()
+{
     currentFactory = ProgramFactory::first;
     current = currentFactory->launch();
     Serial.printf("Launched %s\n", currentFactory->name);
@@ -73,10 +77,6 @@ void program_loop()
             if (!currentFactory)
             {
                 currentFactory = ProgramFactory::first;
-                auto new_strip_mode = static_cast<StripMode>(static_cast<int>(get_strip_mode())+1);
-                if (new_strip_mode >= StripMode::Last)
-                    new_strip_mode = StripMode::First;
-                set_strip_mode(new_strip_mode);
             }
             current = currentFactory->launch();
         }

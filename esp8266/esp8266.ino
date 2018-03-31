@@ -57,33 +57,7 @@ CRGB* leds = nullptr;
 CRGB* strand1 = nullptr;
 
 // The number of LEDs available to the animation algorithms
-int effective_leds = 0;
-
-static StripMode strip_mode = StripMode::WholeStrip;
-
-StripMode get_strip_mode()
-{
-    return strip_mode;
-}
-
-void set_strip_mode(StripMode mode)
-{
-    switch (mode)
-    {
-    case StripMode::WholeStrip:
-        effective_leds = NUM_LEDS;
-        break;
-
-    case StripMode::OnePoleCopy:
-    case StripMode::OnePoleShiftCopy:
-        effective_leds = NUM_LEDS_PER_POLE;
-        break;
-
-    default:
-        return;
-    }
-    strip_mode = mode;
-}
+int effective_leds = NUM_LEDS;
 
 void clear_all();
 void show();
@@ -91,11 +65,6 @@ void show();
 void setup()
 {
     leds = new CRGB[NUM_LEDS];
-    
-    pinMode(StatusPin, OUTPUT);
-    digitalWrite(StatusPin, 0);
-    
-    set_strip_mode(StripMode::WholeStrip);
     
     if (NUM_OF_STRANDS > 1)
     {
@@ -106,82 +75,63 @@ void setup()
     }
     
     ws2812_brightness(BRIGHTNESS);
+    neomatrix_init();
+    memset(leds, 10, effective_leds * 3);
+    show();
 
     delay(1000);
-    Serial.begin(115200);
-    Serial.print("\r\nSommerhack LED ");
-    Serial.println(version);
-
-    Serial.print("Poles per strand: ");
-    Serial.println(NUM_POLES_PER_STRAND);
 
     // Connect to WiFi network
     WiFi.mode(WIFI_STA);
     int index = 0;
+    bool connected = false;
     while (index < sizeof(ssids)/sizeof(ssids[0]))
     {
-        Serial.println();
-        Serial.println();
-        Serial.print("Trying to connect to ");
-        Serial.println(ssids[index]);
-
         WiFi.begin(ssids[index], passwords[index]);
-        digitalWrite(StatusPin, 0);
 
         int i = 0;
-        bool connected = false;
         while (i < 15)
         {
-            digitalWrite(StatusPin, 1);
-            delay(250);
             if (WiFi.status() == WL_CONNECTED)
             {
                 connected = true;
                 break;
             }
-            digitalWrite(StatusPin, 0);
-            delay(250);
-            Serial.print(".");
             ++i;
+            delay(500);
         }
         if (connected)
         {
-            for (int i = 0; i < 10; ++i)
-            {
-                delay(80);
-                digitalWrite(StatusPin, 1);
-                delay(80);
-                digitalWrite(StatusPin, 0);
-            }
-            Serial.println("");
-            Serial.print("Connected to ");
-            Serial.println(ssids[index]);
             break;
         }
-        Serial.println("");
         ++index;
-        if (index >= sizeof(ssids)/sizeof(const char*))
-            index = 0;
     }
   
-    // Print the IP address
-    Serial.println(WiFi.localIP());
-
     // Set up mDNS responder:
     if (!mdns.begin(myDNSName))
         Serial.println("Error setting up mDNS responder!");
     else
     {
         mdns.enableArduino(8266);
-        Serial.println("mDNS responder started");
-        Serial.printf("My name is [%s]\r\n", myDNSName);
     }
 
     Udp.begin(7890);
     
-    neomatrix_init();
+    if (connected)
+    {
+        for (int i = 0; i < 5; ++i)
+        {
+            memset(leds, 255, effective_leds * 3);
+            show();
+            delay(50);
+            memset(leds, 0, effective_leds * 3);
+            show();
+            delay(100);
+        }
+    }
     clear_all();
     show();
+    neomatrix_start();
 }
 
 WiFiClient client;
@@ -221,15 +171,6 @@ void parse_mode(uint8_t* data, int size)
     auto mode = (const char*) data;
     Serial.printf("Set mode %s\r\n", mode);
     neomatrix_change_program(mode);
-}
-
-void parse_strip_mode(uint8_t* data, int size)
-{
-    if (size < sizeof(uint8_t))
-        return;
-    auto cmdptr = (uint8_t*) data;
-    set_strip_mode(static_cast<StripMode>(*cmdptr));
-    Serial.printf("Set strip mode %d\r\n", strip_mode);
 }
 
 void parse_speed(uint8_t* data, int size)
@@ -288,11 +229,6 @@ void clientEventUdp()
             parse_mode(rcv + sizeof(int16_t), len - sizeof(int16_t));
             break;
             
-        case 1113:
-            // Set autonomous strip mode (1 byte)
-            parse_strip_mode(rcv + sizeof(int16_t), len - sizeof(int16_t));
-            break;
-            
         case 1114:
             // Set autonomous speed (1 byte)
             parse_speed(rcv + sizeof(int16_t), len - sizeof(int16_t));
@@ -327,30 +263,6 @@ void clear_all()
 
 void show()
 {
-    switch (strip_mode)
-    {
-    case StripMode::WholeStrip:
-        break;
-
-    case StripMode::OnePoleCopy:
-        for (int i = 0; i < NUM_LEDS_PER_POLE; ++i)
-            for (int j = 1; j < NUM_POLES_PER_STRAND*NUM_OF_STRANDS; ++j)
-                leds[j*NUM_LEDS_PER_POLE+i] = leds[i];
-        break;
-
-    case StripMode::OnePoleShiftCopy:
-        for (int i = 0; i < NUM_LEDS_PER_POLE; ++i)
-            for (int j = 1; j < NUM_POLES_PER_STRAND*NUM_OF_STRANDS; ++j)
-                leds[j*NUM_LEDS_PER_POLE+(i+j*3)%NUM_LEDS_PER_POLE] = leds[i];
-        break;
-    }
-
-    // Mirror strand 1
-    if (NUM_OF_STRANDS > 1)
-        for (int p = 0; p < NUM_POLES_PER_STRAND; ++p)
-            for (int i = 0; i < NUM_LEDS_PER_POLE; ++i)
-                strand1[p*NUM_LEDS_PER_POLE+i] = leds[(NUM_POLES_PER_STRAND-1-p)*NUM_LEDS_PER_POLE+i];
-
     neomatrix_show(leds);
 }
 
@@ -374,6 +286,5 @@ void loop()
     {
         blink_tick = ticks;
         status_led_on = !status_led_on;
-        digitalWrite(StatusPin, status_led_on);
     }
 }
