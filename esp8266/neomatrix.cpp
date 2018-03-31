@@ -17,6 +17,7 @@
 Program* current = nullptr;
 uint32_t startTime = 0;
 ProgramFactory* currentFactory = nullptr;
+static CRGB* swap_buf = nullptr;
 
 extern void show();
 
@@ -94,20 +95,19 @@ void neomatrix_run(CRGB* pixels)
         neomatrix_show(pixels);
 }
 
-template<typename T> void swap(T& a, T& b)
-{
-    T tmp = a;
-    a = b;
-    b = tmp;
-}
-
 void neomatrix_show(CRGB* pixels)
 {
     // RGB -> GRB
-    for (int i = 0; i < NUM_LEDS; ++i)
-        swap(pixels[i].r, pixels[i].g);
+    if (!swap_buf)
+        swap_buf = new CRGB[NUM_LEDS];
     
-    ws2812_show(pixels);
+    for (int i = 0; i < NUM_LEDS; ++i)
+    {
+        swap_buf[i].r = pixels[i].g;
+        swap_buf[i].g = pixels[i].r;
+        swap_buf[i].b = pixels[i].b;
+    }
+    ws2812_show(swap_buf);
 }
 
 void neomatrix_change_program(const char* name)
