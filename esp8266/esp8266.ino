@@ -37,11 +37,13 @@
 const char* version = "0.1.0";
 
 const char* ssids[] = {
-    "Vammen Camping",
-    "bullestock-guest",
-    "hal9k"
+    "OEU",
+    "bullestock-guest"
 };
-const char* password = "";
+const char* passwords[] = {
+    "Frihed under ansvar!",
+    ""
+};
 
 MDNSResponder mdns;
 const char myDNSName[] = "displaydingo1";
@@ -116,14 +118,14 @@ void setup()
     // Connect to WiFi network
     WiFi.mode(WIFI_STA);
     int index = 0;
-    while (1)
+    while (index < sizeof(ssids)/sizeof(ssids[0]))
     {
         Serial.println();
         Serial.println();
         Serial.print("Trying to connect to ");
         Serial.println(ssids[index]);
 
-        WiFi.begin(ssids[index], password);
+        WiFi.begin(ssids[index], passwords[index]);
         digitalWrite(StatusPin, 0);
 
         int i = 0;
@@ -348,7 +350,7 @@ void show()
         for (int p = 0; p < NUM_POLES_PER_STRAND; ++p)
             for (int i = 0; i < NUM_LEDS_PER_POLE; ++i)
                 strand1[p*NUM_LEDS_PER_POLE+i] = leds[(NUM_POLES_PER_STRAND-1-p)*NUM_LEDS_PER_POLE+i];
-    
+
     neomatrix_show(leds);
 }
 

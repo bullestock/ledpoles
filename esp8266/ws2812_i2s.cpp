@@ -359,15 +359,15 @@ void ws2812_show(const CRGB data[])
 
   while (buf < end) {
     uint8_t b1 = ((*buf++) * bright) >> 8;
+    uint8_t b2 = ((*buf++) * bright) >> 8;
+    uint8_t b3 = ((*buf++) * bright) >> 8;
+    uint8_t b4 = ((*buf++) * bright) >> 8;
     uint16_t c1a = bitpatterns[b1 & 0x0f];
     uint16_t c1b = bitpatterns[b1 >> 4];
-    uint8_t b2 = ((*buf++) * bright) >> 8;
     uint16_t c2a = bitpatterns[b2 & 0x0f];
     uint16_t c2b = bitpatterns[b2 >> 4];
-    uint8_t b3 = ((*buf++) * bright) >> 8;
     uint16_t c3a = bitpatterns[b3 & 0x0f];
     uint16_t c3b = bitpatterns[b3 >> 4];
-    uint8_t b4 = ((*buf++) * bright) >> 8;
     uint16_t c4a = bitpatterns[b4 & 0x0f];
     uint16_t c4b = bitpatterns[b4 >> 4];
 

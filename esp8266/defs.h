@@ -1,7 +1,7 @@
 #pragma once
 
 const int NUM_LEDS_PER_POLE = 30;
-const int NUM_POLES_PER_STRAND = 1;
+const int NUM_POLES_PER_STRAND = 3;
 const int NUM_OF_STRANDS = 1;
 const int NUM_LEDS = NUM_OF_STRANDS*NUM_POLES_PER_STRAND*NUM_LEDS_PER_POLE;
 // Pin for controlling strand 1
