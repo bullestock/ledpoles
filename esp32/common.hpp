@@ -20,7 +20,7 @@
 #ifdef __linux__
 #define HZ 1000000
 #else
-#define HZ 80000000
+#define HZ 240000000
 #endif
 
 inline uint32_t getCycleCount(void)
