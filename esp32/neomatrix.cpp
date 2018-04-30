@@ -6,6 +6,7 @@
  */
 
 #include <FastLED.h>
+#include "SSD1306.h" 
 #include <esp_timer.h>
 
 #include "common.hpp"
@@ -17,13 +18,20 @@ Program* current = nullptr;
 uint32_t startTime = 0;
 ProgramFactory* currentFactory = nullptr;
 
+extern SSD1306 display;
+
 extern void show();
 
 void neomatrix_init()
 {
     currentFactory = ProgramFactory::first;
     current = currentFactory->launch();
-    Serial.printf("Launched %s\n", currentFactory->name);
+    char buf[80];
+    sprintf(buf, "Launched %s", currentFactory->name);
+    Serial.printf("%s\n", buf);
+    display.clear();
+    display.drawString(0, 0, buf);
+    display.display();
     startTime = millis();
 }
 
@@ -74,14 +82,22 @@ void program_loop()
                 if (new_strip_mode >= StripMode::Last)
                     new_strip_mode = StripMode::First;
                 set_strip_mode(new_strip_mode);
+                Serial.printf("New strip mode %d\n", new_strip_mode);
             }
             current = currentFactory->launch();
         }
         while (night_mode && !current->allow_night_mode());
         
-        Serial.printf("Launched %s\n", currentFactory->name);
+        char buf[80];
+        sprintf(buf, "Launched %s", currentFactory->name);
+        Serial.printf("%s\n", buf);
+        display.clear();
+        display.drawString(0, 0, buf);
         int64_t ticks = esp_timer_get_time();
-        Serial.printf("Uptime is %d s\n", static_cast<int>(ticks/1000000));
+        sprintf(buf, "Uptime is %d s", static_cast<int>(ticks/1000000));
+        Serial.printf("%s\n", buf);
+        display.drawString(0, 16, buf);
+        display.display();
         startTime = now;
     }
 }

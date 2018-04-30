@@ -29,11 +29,13 @@
 
 #include <WiFi.h>
 #include <ESPmDNS.h>
+#include <Wire.h>
+#include "SSD1306.h" 
 
 #include "neomatrix.hpp"
 #include "stripmode.hpp"
 
-const char* version = "0.1.0";
+const char* version = "0.2.0";
 
 const char* ssids[] = {
     "Vammen Camping",
@@ -46,6 +48,8 @@ MDNSResponder mdns;
 const char myDNSName[] = "displaydingo2";
 
 WiFiUDP Udp;
+
+SSD1306 display(0x3c, 21, 22, GEOMETRY_128_32);
 
 const int NUM_LEDS_PER_POLE = 30;
 const int NUM_POLES_PER_STRAND = 1;
@@ -126,12 +130,16 @@ void setup()
     Serial.begin(115200);
     Serial.print("\r\nSommerhack LED ");
     Serial.println(version);
+    display.init();
+    display.drawString(0, 0, version);
+    display.display();
+    delay(2000);
 
     Serial.print("Poles per strand: ");
     Serial.println(NUM_POLES_PER_STRAND);
 
     // Connect to WiFi network
-    //WiFi.mode(WIFI_STA);
+    WiFi.mode(WIFI_STA);
     int index = 0;
     while (1)
     {
@@ -162,16 +170,16 @@ void setup()
         }
         if (connected)
         {
-            for (int i = 0; i < 10; ++i)
-            {
-                delay(80);
-                digitalWrite(StatusPin, 1);
-                delay(80);
-                digitalWrite(StatusPin, 0);
-            }
+            display.clear();
+            display.drawString(0, 0, "Connected to");
+            display.drawString(0, 16, ssids[index]);
+            display.display();
+        
+            display.display();
             Serial.println("");
             Serial.print("Connected to ");
             Serial.println(ssids[index]);
+            delay(1000);
             break;
         }
         Serial.println("");
@@ -185,11 +193,19 @@ void setup()
 
     // Set up mDNS responder:
     if (!mdns.begin(myDNSName))
+    {
         Serial.println("Error setting up mDNS responder!");
+        display.clear();
+        display.drawString(0, 0, "mDNS error");
+        display.display();
+    }
     else
     {
         Serial.println("mDNS responder started");
         Serial.printf("My name is [%s]\r\n", myDNSName);
+        display.clear();
+        display.drawString(0, 0, myDNSName);
+        display.display();
     }
 
     Udp.begin(7890);
