@@ -59,8 +59,6 @@ const int NUM_LEDS = NUM_OF_STRANDS*NUM_POLES_PER_STRAND*NUM_LEDS_PER_POLE;
 const int PixelPin1 = 2;
 // Pin for controlling strand 2
 const int PixelPin2 = 4;
-// Pin for controlling status LED
-const int StatusPin = 5;
 
 const int BRIGHTNESS = 100; // percent
 
@@ -109,9 +107,6 @@ void setup()
 {
     leds = new CRGB[NUM_LEDS];
     
-    pinMode(StatusPin, OUTPUT);
-    digitalWrite(StatusPin, 0);
-    
     set_strip_mode(StripMode::WholeStrip);
     
     if (NUM_OF_STRANDS > 1)
@@ -148,22 +143,21 @@ void setup()
         Serial.print("Trying to connect to ");
         Serial.println(ssids[index]);
 
+        // Writing to the display here consistently makes WiFi fail to connect...
+
         WiFi.disconnect();
         WiFi.begin(ssids[index], password);
-        digitalWrite(StatusPin, 0);
 
         int i = 0;
         bool connected = false;
         while (i < 15)
         {
-            digitalWrite(StatusPin, 1);
             delay(250);
             if (WiFi.status() == WL_CONNECTED)
             {
                 connected = true;
                 break;
             }
-            digitalWrite(StatusPin, 0);
             delay(250);
             Serial.print(".");
             ++i;
@@ -386,9 +380,6 @@ void show()
     FastLED.show();
 }
 
-unsigned long blink_tick = 0;
-bool status_led_on = false;
-
 void loop()
 {
     clientEventUdp();
@@ -399,13 +390,5 @@ void loop()
     {
         show();
         dirtyshow = false;
-    }
-
-    const auto ticks = millis();
-    if (ticks - blink_tick > BLINK_TICK_INTERVAL)
-    {
-        blink_tick = ticks;
-        status_led_on = !status_led_on;
-        digitalWrite(StatusPin, status_led_on);
     }
 }
