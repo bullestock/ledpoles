@@ -1,7 +1,7 @@
 import socket, time, sys
 
 if len(sys.argv) < 2:
-    print("Usage: setspeed [<address>] <mode>")
+    print("Usage: setspeed [<address>] <speed>")
     sys.exit()
 
 address = 'displaydingo1.local'
