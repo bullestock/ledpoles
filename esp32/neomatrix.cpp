@@ -8,6 +8,7 @@
 #include <FastLED.h>
 #include "SSD1306.h" 
 #include <esp_timer.h>
+#include <WiFi.h>
 
 #include "common.hpp"
 #include "display.hpp"
@@ -29,9 +30,11 @@ void neomatrix_init()
     char buf[80];
     sprintf(buf, "Launched %s", currentFactory->name);
     Serial.printf("%s\n", buf);
+#if 0
     display.clear();
     display.drawString(0, 0, buf);
     display.display();
+#endif
     startTime = millis();
 }
 
@@ -58,7 +61,7 @@ void program_loop()
     {
         auto brightness = max_brightness;
         if (night_mode)
-            brightness = min(brightness, 64);
+            brightness = std::min(brightness, 64);
         FastLED.setBrightness(brightness);
     }
     else if (prgTime < RUNTIME)
@@ -89,12 +92,15 @@ void program_loop()
         while (night_mode && !current->allow_night_mode());
         
         char buf[80];
-        sprintf(buf, "Launched %s", currentFactory->name);
+        sprintf(buf, "Auto: %s", currentFactory->name);
         Serial.printf("%s\n", buf);
         display.clear();
         display.drawString(0, 0, buf);
-        int64_t ticks = esp_timer_get_time();
-        sprintf(buf, "Uptime is %d s", static_cast<int>(ticks/1000000));
+        const int secs = esp_timer_get_time()/1000000;
+        int mins = secs/60;
+        const int hours = mins/60;
+        mins -= hours*60;
+        sprintf(buf, "%d up %02d:%02d", (int) WiFi.RSSI(), hours, mins);
         Serial.printf("%s\n", buf);
         display.drawString(0, 16, buf);
         display.display();
@@ -106,8 +112,17 @@ void neomatrix_run()
 {
     if (auto_program_switch)
         program_loop();
-    if (run_autonomously && current->run())
-        show();
+    if (run_autonomously)
+    {
+        if (current->run())
+            show();
+    }
+    else
+    {
+        display.clear();
+        display.drawString(0, 0, "External control");
+        display.display();
+    }
 }
 
 void neomatrix_change_program(const char* name)
@@ -122,6 +137,11 @@ void neomatrix_change_program(const char* name)
     auto_program_switch = false;
     clear_all();
     FastLED.setBrightness(max_brightness);
+    display.clear();
+    char buf[80];
+    sprintf(buf, "Manual: %s", currentFactory->name);
+    display.drawString(0, 0, buf);
+    display.display();
 }
 
 void neomatrix_set_speed(int fps)
@@ -145,4 +165,7 @@ void neomatrix_start_autorun()
 {
     run_autonomously = true;
     auto_program_switch = true;
+    display.clear();
+    display.drawString(0, 0, "Autonomous mode");
+    display.display();
 }
