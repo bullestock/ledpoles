@@ -17,6 +17,7 @@
 
 Program* current = nullptr;
 uint32_t startTime = 0;
+uint32_t lastUpdate = 0;
 ProgramFactory* currentFactory = nullptr;
 
 extern SSD1306 display;
@@ -36,6 +37,7 @@ void neomatrix_init()
     display.display();
 #endif
     startTime = millis();
+    lastUpdate = millis();
 }
 
 #define RUNTIME 60000
@@ -90,7 +92,14 @@ void program_loop()
             current = currentFactory->launch();
         }
         while (night_mode && !current->allow_night_mode());
-        
+
+        startTime = now;
+    }
+
+    if (now - lastUpdate > 5000)
+    {
+        lastUpdate = now;
+
         char buf[80];
         sprintf(buf, "Auto: %s", currentFactory->name);
         Serial.printf("%s\n", buf);
@@ -100,11 +109,10 @@ void program_loop()
         int mins = secs/60;
         const int hours = mins/60;
         mins -= hours*60;
-        sprintf(buf, "%d up %02d:%02d", (int) WiFi.RSSI(), hours, mins);
+        sprintf(buf, "RSSI %d Up %02d:%02d", (int) WiFi.RSSI(), hours, mins);
         Serial.printf("%s\n", buf);
         display.drawString(0, 16, buf);
         display.display();
-        startTime = now;
     }
 }
 
