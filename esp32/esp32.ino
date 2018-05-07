@@ -4,7 +4,7 @@
 
 // Copyright (c) 2015 by bbx10node@gmail.com 
 // Copyright (C) 2016 Georg Sluyterman <georg@sman.dk>
-// Copyright (C) 2017 Torsten Martinsen <torsten@bullestock.net>
+// Copyright (C) 2017-2018 Torsten Martinsen <torsten@bullestock.net>
 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -199,7 +199,9 @@ void setup()
         Serial.printf("My name is [%s]\r\n", myDNSName);
         display.clear();
         display.drawString(0, 0, myDNSName);
+        display.drawString(0, 16, WiFi.localIP().toString());
         display.display();
+        delay(1000);
     }
 
     Udp.begin(7890);
