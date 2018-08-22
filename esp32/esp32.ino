@@ -35,7 +35,7 @@
 #include "neomatrix.hpp"
 #include "stripmode.hpp"
 
-const char* version = "0.2.0";
+const char* version = "0.2.1";
 
 const char* ssids[] = {
     "Vammen Camping",
@@ -45,14 +45,14 @@ const char* ssids[] = {
 const char* password = "";
 
 MDNSResponder mdns;
-const char myDNSName[] = "displaydingo2";
+const char myDNSName[] = "displaydingo1";
 
 WiFiUDP Udp;
 
 SSD1306 display(0x3c, 21, 22, GEOMETRY_128_32);
 
 const int NUM_LEDS_PER_POLE = 30;
-const int NUM_POLES_PER_STRAND = 1;
+const int NUM_POLES_PER_STRAND = 12;
 const int NUM_OF_STRANDS = 2;
 const int NUM_LEDS = NUM_OF_STRANDS*NUM_POLES_PER_STRAND*NUM_LEDS_PER_POLE;
 // Pin for controlling strand 1
@@ -60,7 +60,7 @@ const int PixelPin1 = 2;
 // Pin for controlling strand 2
 const int PixelPin2 = 4;
 
-const int BRIGHTNESS = 100; // percent
+const int BRIGHTNESS = 75; // percent
 
 // Blink duration when connected
 const int BLINK_TICK_INTERVAL = 2000;
@@ -114,7 +114,7 @@ void setup()
         // Strand 1 must be swapped before display, so we need a separate display buffer
         strand1 = new CRGB[NUM_LEDS/2];
         FastLED.addLeds<WS2811, PixelPin1, GRB>(strand1, NUM_LEDS/2).setCorrection(TypicalLEDStrip);
-        FastLED.addLeds<WS2811, PixelPin2, GRB>(leds, NUM_LEDS/2, NUM_LEDS/2).setCorrection(TypicalLEDStrip);
+        FastLED.addLeds<WS2811, PixelPin2, GRB>(leds+NUM_LEDS/2, NUM_LEDS/2).setCorrection(TypicalLEDStrip);
     }
     else
         FastLED.addLeds<WS2811, PixelPin1, GRB>(leds, NUM_LEDS).setCorrection(TypicalLEDStrip);
@@ -126,12 +126,11 @@ void setup()
     Serial.print("\r\nSommerhack LED ");
     Serial.println(version);
     display.init();
-    display.drawString(0, 0, version);
+    char buf[30];
+    sprintf(buf, "%s %dx%d", version, NUM_OF_STRANDS, NUM_POLES_PER_STRAND);
+    display.drawString(0, 0, buf);
     display.display();
-    delay(2000);
-
-    Serial.print("Poles per strand: ");
-    Serial.println(NUM_POLES_PER_STRAND);
+    delay(1000);
 
     // Connect to WiFi network
     WiFi.mode(WIFI_STA);
