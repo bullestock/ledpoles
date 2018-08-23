@@ -1,0 +1,6 @@
+Mode 1: Strand 1 flimrer nogle gange
+bounce: Strand 1 blinker alle LEDs, strand 2 kører løbelys
+Mode 4, 16: Stationær?
+chase, confetti, cylon, juggle, matrix, randomburst: Strand 1 flimrer (chasemulti ok)
+Mode 15: Nogle pæle flimrer
+Fire: kedelig

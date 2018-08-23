@@ -1,0 +1,21 @@
+#include "program.hpp"
+#include "display.hpp"
+
+// 
+class RandomBurst : public Program
+{
+public:
+    RandomBurst()
+        : Program(1)
+    {
+    }
+
+    virtual bool run()
+    {
+        if (limiter.skip()) return false;
+
+        return true;
+    }
+};
+
+REGISTER_PROGRAM(RandomBurst);
