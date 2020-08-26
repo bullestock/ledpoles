@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 import socket, time, sys
 
 address = 'displaydingo1.local'
@@ -18,18 +20,18 @@ d = 0.2
 while True:
     data = '5704'
     data = data + '0000' # offset
-    for i in range(0, 4*30/4):
+    for i in range(0, int(4*30/4)):
         data = data + '00000000ffff000000ff0000' # black, blue, black, red
     
-    s.send(data.decode('hex'))
+    s.send(bytes.fromhex(data))
 
     time.sleep(d)
     
     data = '5704'
-    for i in range(0, 4*30/4):
+    for i in range(0, int(4*30/4)):
         data = data + '0000ff000000ff0000000000' # blue, black, red, black
     
-    s.send(data.decode('hex'))
+    s.send(bytes.fromhex(data))
 
     time.sleep(d)
     

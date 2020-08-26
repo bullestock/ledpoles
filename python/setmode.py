@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 import socket, time, sys
 
 if len(sys.argv) < 2:
@@ -19,7 +21,9 @@ s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, 0)
 s.connect((address, PORTNUM))
 
 data = '5804'
-    
-s.send(data.decode('hex')+mode)
+
+data = bytes.fromhex(data)+mode.encode('utf-8')
+
+s.send(data)
 
 s.close()
