@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 import socket, time, sys
 
 if len(sys.argv) < 2:
@@ -18,6 +20,6 @@ s.connect((address, PORTNUM))
 
 data = '5B04'
     
-s.send(data.decode('hex'))
+s.send(bytes.fromhex(data))
 
 s.close()

@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 import socket, time, sys
 
 if len(sys.argv) < 2:
@@ -22,6 +24,6 @@ d = 0.2
 
 data = '5904%02x' % mode
     
-s.send(data.decode('hex'))
+s.send(bytes.fromhex(data))
 
 s.close()
